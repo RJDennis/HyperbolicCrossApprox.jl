@@ -71,12 +71,12 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
     n = 2*maximum(multi_index)+1
     
     unique_multi_index = sort(unique(multi_index))
-  
-    base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
-    unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
-   
+     
     @inbounds @sync @qthreads for k = 1:size(nodes,1)
     
+      base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
+      unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
+
       # Construct the base polynomials
     
       for i = 1:length(unique_multi_index)
@@ -129,4 +129,3 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
     return inverse_interpolation_matrix
     
   end
-  
