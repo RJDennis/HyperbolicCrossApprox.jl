@@ -17,8 +17,8 @@ Then the package can be used by typing
 using HyperbolicCrossApprox
 ```
 
-Chebyshev polynomials
----------------------
+Approximating grid
+------------------
 
 The nodes used to form the approximating grid can be computed using either the Chebyshev nodes (points of the first kind) or Chebyshev extrema (points of the second kind), with the approximating grid and the multi-index computed by
 
@@ -34,6 +34,9 @@ grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 
 In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`.
 
+Cubature
+--------
+
 For cubature, the grid and cubature weights are obtained from
 
 ```julia
@@ -43,6 +46,8 @@ grid, cub_weights = hyperbolic_cross_cubature(chebyshev_nodes,d,k,n,domain)
 
 where, again, `chebyshev_nodes` can be replaced with `chebyshev_extrema` (which also changes the appropriate weighting function to be used in the cubature expression).
 
+Polynomial coefficients
+-----------------------
 
 With the grid and multi-index in hand, we can compute the weights, or coefficients in the approximation, according to
 
@@ -62,7 +67,10 @@ with the weights then computed through
 weights = hyperbolic_cross_weights(y,inv_interp_mat)
 ```
 
-Lastly, we can evaluate the hyperbolic cross approximation of the function at any point in the domain by
+Interpolation
+-------------
+
+We can evaluate the hyperbolic cross approximation of the function at any point in the domain by
 
 ```julia
 y_hat = hyperbolic_cross_evaluate(weights,point,multi_ind,domain)
@@ -70,7 +78,10 @@ y_hat = hyperbolic_cross_evaluate(weights,point,multi_ind,domain)
 
 where `point` (a 1d-array) is the point in the domain where the approximation is to be evaluated.
 
-The package can also be used to compute derivatives and gradients of the approximating function, as per
+Derivatives and gradients
+-------------------------
+
+Lastly, the package can also be used to compute derivatives and gradients of the approximating function, as per
 
 ```Julia
 deriv = hyperbolic_cross_derivative(weights,point,multi_ind,domain,pos)
@@ -82,7 +93,10 @@ where `pos` is an integer reflecting the position of the variable being differen
 gradient = hyperbolic_cross_gradient(weights,point,multi_ind,domain)
 ```
 
-Some useful references are:
+References
+----------
+
+Some useful references are
 
 Dennis, R., (2021), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models," CAMA working paper number 93/2021, Australian National University.
 
