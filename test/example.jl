@@ -48,18 +48,19 @@ function test_hyperbolic_cross_approx()
 
   # Now consider the ansiotropic case
 
-  k = [7, 5, 5, 5, 7]
-  g3, m3 = hyperbolic_cross_grid(chebyshev_nodes,d,k)  # Construct the hyperbolic cross grid and the multi index
+  k = 7
+  n = [15, 11, 11, 11, 15]
+  g3, m3 = hyperbolic_cross_grid(chebyshev_nodes,d,k,n)  # Construct the hyperbolic cross grid and the multi index
   y3 = test(g3)
   w3 = hyperbolic_cross_weights(y3,g3,m3)                   # Compute the hyperbolic cross weights
   y3_hat_ansio = hyperbolic_cross_evaluate(w3,point,m3)       # Evaluate the approximated function
-  w3_th = hyperbolic_cross_weights_threaded(y3,grid,m3)                   # Compute the hyperbolic cross weights
+  #w3_th = hyperbolic_cross_weights_threaded(y3,g3,m3)                   # Compute the hyperbolic cross weights
 
   g4, m4 =  hyperbolic_cross_grid(chebyshev_extrema,d,k)
   y4 = test(g4)
   w4 = hyperbolic_cross_weights(y4,g4,m4)
-  w4_th = hyperbolic_cross_weights_threaded(y4,g4,m4)
-  y4_hat_ansio = hyperbolic_cross_evaluate(w4,point,g4,m4)
+  y4_hat_ansio = hyperbolic_cross_evaluate(w4,point,m4)
+  #w4_th = hyperbolic_cross_weights_threaded(y4,g4,m4)
 
   return y_actual, y1_hat, y2_hat, y1b_hat, y3_hat_ansio, y4_hat_ansio
 
