@@ -1,5 +1,6 @@
 function determine_grid_size(p::Array{S,2}) where {S <: Integer}
     
+    
     q = similar(p)
   
     for i in eachindex(p)
