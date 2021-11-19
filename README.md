@@ -32,12 +32,17 @@ where `d` is the dimension of the function, `k` is the number of layers along ea
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 ```
 
-For cubature, the grid, cubature weights, and multi-index are obtained from
+In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`.
+
+For cubature, the grid and cubature weights are obtained from
 
 ```julia
 grid, cub_weights = hyperbolic_cross_cubature(chebyshev_nodes,d,k,domain)
 grid, cub_weights = hyperbolic_cross_cubature(chebyshev_nodes,d,k,n,domain)
 ```
+
+where, again, `chebyshev_nodes` can be replaced with `chebyshev_extrema` (which also changes the appropriate weighting function to be used in the cubature expression).
+
 
 With the grid and multi-index in hand, we can compute the weights, or coefficients in the approximation, according to
 
