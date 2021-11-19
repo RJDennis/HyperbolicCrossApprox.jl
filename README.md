@@ -1,6 +1,8 @@
 # HyperbolicCrossApprox.jl
  
-This package implements a hyperbolicbolic cross sparse-grid method for approximating multivariate continuous functions with Chebyshev polynomials as basis functions.  Flexibility is given over the resulting grid through parameters that govern the maximum number of points along each spacial dimension and the number of layers along each spacial dimension.  The package also allows for isotropic and ansiotropic grids.  The associated weights for the hyperbolic grid are also computed allowing the package to be used to perform cubature.  Hyperbolic cross approximation is a sparse-grid alternative to Smolyak's method.  Where existing treatments of the hyperbolic cross method are based on non-equispaced fast Fourier methods, the treatment in this code is based on Chebyshev polynomials with the coefficients in the approximating function constructed using Lagrange interpolation.
+This package implements a hyperbolicbolic cross sparse-grid method for approximating multivariate continuous functions with Chebyshev polynomials as basis functions.  Flexibility is given over the resulting grid through parameters that govern the maximum number of points along each spacial dimension and the number of layers along each spacial dimension.  The package also allows for isotropic and ansiotropic grids.
+
+Hyperbolic cross approximation is a sparse-grid alternative to Smolyak's method.  Where existing treatments of the hyperbolic cross method are based on non-equispaced fast Fourier methods, the treatment in this code is based on Chebyshev polynomials with the coefficients in the approximating function constructed using Lagrange interpolation.
 
 This package draws on and is related to others I have written, specifically: ChebyshevApprox.jl and SmolyakApprox.jl. 
 
@@ -33,18 +35,6 @@ grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 ```
 
 In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`.
-
-Cubature
---------
-
-For cubature, the grid and cubature weights are obtained from
-
-```julia
-grid, cub_weights = hyperbolic_cross_cubature(chebyshev_nodes,d,k,domain)
-grid, cub_weights = hyperbolic_cross_cubature(chebyshev_nodes,d,k,n,domain)
-```
-
-where, again, `chebyshev_nodes` can be replaced with `chebyshev_extrema` (which also changes the appropriate weighting function to be used in the cubature expression).
 
 Polynomial coefficients
 -----------------------
