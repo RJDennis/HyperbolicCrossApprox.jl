@@ -11,6 +11,8 @@ import ChebyshevApprox: chebyshev_polynomial,
                         chebyshev_extended,
                         vertesi_nodes
 
+import Combinatorics: permutations
+
 using ThreadPools
 using FLoops
 
