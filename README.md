@@ -88,10 +88,10 @@ References
 
 Some useful references are
 
-Dennis, R., (2021), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models," CAMA working paper number 93/2021, Australian National University.
+Dennis, R., (2021), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models", CAMA working paper number 93/2021, Australian National University.
 
-Döhler, M., Kunis, S., and D. Potts, (2010), "Nonequispaced Hyperbolic Cross Fast Fourier Transform," SIAM Journal on Numerical Analysis ,47 (6), pp. 4415-4428.
+Döhler, M., Kunis, S., and D. Potts, (2010), "Nonequispaced Hyperbolic Cross Fast Fourier Transform", *SIAM Journal on Numerical Analysis*, 47, (6), pp. 4415-4428.
 
-Dũng, D., Temlyakov, V., and T. Ullrich, (2018), "Hyperbolic Cross Approximation," Advanced Courses in Mathematics, CRM Barcelona, Centre de Recerca Matemàtica, Birkhäuser.
+Dũng, D., Temlyakov, V., and T. Ullrich, (2018), "Hyperbolic Cross Approximation", *Advanced Courses in Mathematics*, CRM Barcelona, Centre de Recerca Matemàtica, Birkhäuser.
 
-Shen, J., L-L. Wang, (2010), "Sparse Spectral Approximations of High-Dimensional Problems Based on Hyperbolic Cross," SIAM Journal on Numerical Analysis, 48 (3), pp. 1087-1109.
+Shen, J., L-L. Wang, (2010), "Sparse Spectral Approximations of High-Dimensional Problems Based on Hyperbolic Cross" *SIAM Journal on Numerical Analysis*, 48, (3), pp. 1087-1109.
