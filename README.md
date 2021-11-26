@@ -1,6 +1,6 @@
 # HyperbolicCrossApprox.jl
  
-This package implements a hyperbolic cross sparse-grid method for approximating multivariate continuous functions with Chebyshev polynomials as basis functions.  Flexibility is given over the resulting grid through parameters that govern the maximum number of points along each spatial dimension and the number of layers along each spatial dimension.  The package also allows for isotropic and ansiotropic grids.
+This package implements a hyperbolic cross sparse-grid method for approximating multivariate continuous functions with Chebyshev polynomials as basis functions.  Flexibility is given over the resulting grid through parameters that govern the maximum number of points along each spatial dimension and the number of layers along each spatial dimension.  The package also allows for isotropic and anisotropic grids.
 
 Hyperbolic cross approximation is a sparse-grid alternative to Smolyak's method.  Where existing treatments of the hyperbolic cross method are based on non-equispaced fast Fourier methods, the treatment in this code is based on Chebyshev polynomials with the coefficients in the approximating function constructed using Lagrange interpolation.
 
@@ -28,7 +28,7 @@ The nodes used to form the approximating grid can be computed using either the C
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,domain)
 ```
 
-where `d` is the dimension of the function, `k` is the number of layers along each dimension, and domain is a 2d-array (2xd) containing the upper and lower bound on each variable.  If domain is not provided, then it is assumed that the variables reside on the [-1,1] interval.  If `k` is an integer, then an isotropic grid is computed whereas if `k` is an array of integers with length `d`, then an ansiotropic grid is computed.  For the function above, the number of grid points along each spacial dimension is given by `n = 2k+1`.  Alternatively, the values for `k` and `n` can be provided separately (and hence not linked by `n=2k+1`) by
+where `d` is the dimension of the function, `k` is the number of layers along each dimension, and domain is a 2d-array (2xd) containing the upper and lower bound on each variable.  If domain is not provided, then it is assumed that the variables reside on the [-1,1] interval.  If `k` is an integer, then an isotropic grid is computed whereas if `k` is an array of integers with length `d`, then an anisotropic grid is computed.  For the function above, the number of grid points along each spacial dimension is given by `n = 2k+1`.  Alternatively, the values for `k` and `n` can be provided separately (and hence not linked by `n=2k+1`) by
 
 ```julia
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
