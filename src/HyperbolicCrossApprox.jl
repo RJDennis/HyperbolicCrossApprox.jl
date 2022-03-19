@@ -11,10 +11,7 @@ import ChebyshevApprox: chebyshev_polynomial,
                         chebyshev_extended,
                         vertesi_nodes
 
-import Combinatorics: permutations
-
 using ThreadPools
-using FLoops
 
 include("hyperbolic_cross_weights.jl")
 include("hyperbolic_cross_evaluate.jl")
