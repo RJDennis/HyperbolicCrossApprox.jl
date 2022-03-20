@@ -23,7 +23,7 @@ function generate_multi_index(d::S,k::S) where {S <: Integer} # Recursive functi
     N = size(mi_base,1)
     mi = zeros(S,N*kprime,d)
     pos = 0
-    @inbounds for j = 1:N
+    @inbounds @views for j = 1:N
       for i = 1:k+1
         if prod(mi_base[j,:].+1)*i <= kprime
           pos += 1
@@ -75,7 +75,7 @@ function generate_multi_index(d::S,k::S,n::S) where {S <: Integer} # Recursive f
     N = size(mi_base,1)
     mi = zeros(S,N*ki,d)
     pos = 0
-    @inbounds for j = 1:N
+    @inbounds @views for j = 1:N
       for i = 1:ki
         if prod(mi_base[j,:].+1)*i <= kprime
           pos += 1
@@ -129,7 +129,7 @@ function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S <: Integer} # Re
     N = size(mi_base,1)
     mi = zeros(S,N*ki,d)
     pos = 0
-    @inbounds for j = 1:N
+    @inbounds @views for j = 1:N
       for i = 1:ki
         if prod(mi_base[j,:].+1)*i <= kprime
           pos += 1
