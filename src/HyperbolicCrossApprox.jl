@@ -31,6 +31,7 @@ export chebyshev_nodes,
        hyperbolic_cross_weights_threaded,
        hyperbolic_cross_inverse_interpolation_matrix,
        hyperbolic_cross_inverse_interpolation_matrix_threaded,
+       hyperbolic_cross_polynomial,
        hyperbolic_cross_evaluate,
        hyperbolic_cross_derivative,
        hyperbolic_cross_gradient
