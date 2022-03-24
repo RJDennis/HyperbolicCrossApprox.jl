@@ -1,4 +1,4 @@
-function hyperbolic_cross_polynomial(node::Array{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
@@ -43,7 +43,7 @@ function hyperbolic_cross_polynomial(node::Array{R,1},multi_index::Array{S,2}) w
   
 end
   
-function hyperbolic_cross_polynomial(node::Array{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if size(domain,2) != length(node)
     error("domain is inconsistent with the number of dimensions")
@@ -62,7 +62,7 @@ function hyperbolic_cross_polynomial(node::Array{R,1},multi_index::Array{S,2},do
   
 end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
 
   poly = hyperbolic_cross_polynomial(node,multi_index)
 
@@ -72,7 +72,7 @@ function hyperbolic_cross_evaluate(weights::Array{T,1},node::Array{R,1},multi_in
 
 end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
 
 if size(domain,2) != length(node)
   error("domain is inconsistent with the number of dimensions")
