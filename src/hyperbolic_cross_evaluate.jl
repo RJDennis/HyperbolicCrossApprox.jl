@@ -91,7 +91,7 @@ return estimate
 
 end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},polynomial::Array{T,1}) where {T<:AbstractFloat}
+function hyperbolic_cross_evaluate(weights::Array{T,1},polynomial::Array{R,1}) where {T<:AbstractFloat,R<:Number}
 
   estimate = weights'polynomial
 
