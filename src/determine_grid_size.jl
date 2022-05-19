@@ -11,9 +11,9 @@ function determine_grid_size(p::Array{S,2}) where {S <: Integer}
   end
 
   s = 0
-  for i = 1:size(q,1)
+  for i in axes(q,1)
     t = 1
-    for j = 1:size(q,2)
+    for j in axes(q,2)
       t *= q[i,j]
     end
     s += t
@@ -22,4 +22,3 @@ function determine_grid_size(p::Array{S,2}) where {S <: Integer}
   return (s, size(q,2))
    
 end
-  

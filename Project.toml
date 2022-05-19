@@ -1,7 +1,7 @@
 name = "HyperbolicCrossApprox"
 uuid = "db4fe9aa-a353-4142-ac3f-608941c5a4fc"
 authors = ["RJDennis <richard.dennis@glasgow.ac.uk>"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 ChebyshevApprox = "17a596ad-87cd-578c-9b6d-01108c31dc04"

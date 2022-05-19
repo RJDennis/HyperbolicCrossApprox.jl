@@ -9,17 +9,17 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
   unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
  
-  @inbounds for k = 1:size(nodes,1)
+  @inbounds for k in axes(nodes,1)
   
     # Construct the base polynomials
   
-    for i = 1:length(unique_multi_index)
+    for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
   
-    for i = 1:length(unique_multi_index)
+    for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -30,7 +30,7 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
     # Construct a row of the interplation matrix
   
     l = 1
-    @inbounds @views for j = 1:size(multi_index,1)
+    @inbounds @views for j in axes(multi_index,1)
       new_polynomials = unique_base_polynomials[multi_index[j,1]+1][1,:]
       for i = 2:size(multi_index,2)
         new_polynomials = kron(new_polynomials,unique_base_polynomials[multi_index[j,i]+1][i,:])
@@ -72,20 +72,20 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
   
   unique_multi_index = sort(unique(multi_index))
  
-  @inbounds @sync @qthreads for k = 1:size(nodes,1)
+  @inbounds @sync @qthreads for k in axes(nodes,1)
 
     base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
     unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
   
     # Construct the base polynomials
   
-    for i = 1:length(unique_multi_index)
+    for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
   
-    for i = 1:length(unique_multi_index)
+    for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -96,7 +96,7 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
     # Construct a row of the interplation matrix
   
     l = 1
-    @inbounds @views for j = 1:size(multi_index,1)
+    @inbounds @views for j in axes(multi_index,1)
       new_polynomials = unique_base_polynomials[multi_index[j,1]+1][1,:]
       for i = 2:size(multi_index,2)
         new_polynomials = kron(new_polynomials,unique_base_polynomials[multi_index[j,i]+1][i,:])

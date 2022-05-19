@@ -17,7 +17,7 @@ function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_
       
   # Compute the unique polynomial terms from the base polynomials
       
-  for i = 1:size(multi_index,1)
+  for i in axes(multi_index,1)
    for j = 1:d
       if multi_index[i,j] == 0
         unique_base_polynomials[i,j]            = [base_polynomials[j][1]]
@@ -34,7 +34,7 @@ function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_
   polynomials = Array{R,1}(undef,length(weights))
 
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     if pos == 1
       new_polynomials = unique_base_polynomial_derivatives[j,1]
     else
@@ -54,7 +54,7 @@ function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_
   
   evaluated_derivative = zero(T)
   
-  for i = 1:length(polynomials)
+  for i in eachindex(polynomials)
     evaluated_derivative += polynomials[i]*weights[i]
   end
   

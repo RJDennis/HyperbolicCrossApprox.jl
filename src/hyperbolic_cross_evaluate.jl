@@ -14,7 +14,7 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array
     
   # Compute the unique polynomial terms from the base polynomials
     
-  @inbounds for i = 1:size(multi_index,1)
+  @inbounds for i in axes(multi_index,1)
     for j = 1:d
       if multi_index[i,j] == 0
         unique_base_polynomials[i,j] = [base_polynomials[j][1]]
@@ -29,7 +29,7 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array
   n = determine_grid_size(multi_index)
   polynomial = Array{R,1}(undef,n[1])
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     new_polynomials = unique_base_polynomials[j,1]
     for i = 2:d
       new_polynomials = kron(new_polynomials,unique_base_polynomials[j,i])

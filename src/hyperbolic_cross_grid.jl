@@ -22,7 +22,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2}) where {
     
   nodes = Array{T,2}(undef,determine_grid_size(multi_index))
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
     for i = 2:d
       new_nodes = combine_nodes(new_nodes,unique_base_nodes[j,i])  # Here new_nodes becomes a 2d array
@@ -62,7 +62,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S <: Intege
     
   nodes = Array{T,2}(undef,determine_grid_size(multi_index))
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
     for i = 2:d
       new_nodes = combine_nodes(new_nodes,unique_base_nodes[j,i])  # Here new_nodes becomes a 2d array
@@ -100,7 +100,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S <: I
     
   nodes = Array{T,2}(undef,determine_grid_size(multi_index))
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
     for i = 2:d
       new_nodes = combine_nodes(new_nodes,unique_base_nodes[j,i])  # Here new_nodes becomes a 2d array
@@ -130,7 +130,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
   # Determine the unique nodes introduced at each higher level
   
   unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
-  for i = 1:size(multi_index,1)
+  for i in axes(multi_index,1)
     for j = 1:d
       if multi_index[i,j] == 0
         unique_base_nodes[i,j] = [base_nodes[j][Int((n[j]-1)/2)+1]]
@@ -144,7 +144,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
       
   nodes = Array{T,2}(undef,determine_grid_size(multi_index))
   l = 1
-  @inbounds for j = 1:size(multi_index,1)
+  @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
     for i = 2:d
       new_nodes = combine_nodes(new_nodes,unique_base_nodes[j,i])  # Here new_nodes becomes a 2d array

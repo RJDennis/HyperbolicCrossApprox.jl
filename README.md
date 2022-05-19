@@ -83,6 +83,13 @@ where `pos` is an integer reflecting the position of the variable being differen
 gradient = hyperbolic_cross_gradient(weights,point,multi_ind,domain)
 ```
 
+Related packages
+----------------
+
+- ChebyshevApprox.jl
+- SmolyakApprox.jl
+- PiecewiseLinearApprox.jl
+
 References
 ----------
 
