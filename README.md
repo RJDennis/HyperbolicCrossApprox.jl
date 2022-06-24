@@ -34,7 +34,7 @@ where `d` is the dimension of the function, `k` is the number of layers along ea
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 ```
 
-where `n` is either an interger or a tuple of integers.
+where `n` is either an interger or a 1d array of integers.
 
 In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`.
 

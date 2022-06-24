@@ -13,14 +13,7 @@ import ChebyshevApprox: chebyshev_polynomial,
 
 using ThreadPools
 
-include("hyperbolic_cross_weights.jl")
-include("hyperbolic_cross_evaluate.jl")
-include("hyperbolic_cross_grid.jl")
-include("generate_multi_index.jl")
-include("hyperbolic_cross_derivative.jl")
-include("hyperbolic_cross_gradient.jl")
-include("determine_grid_size.jl")
-include("hyperbolic_cross_inverse_interpolation_matrix.jl")
+include("hyperbolic_cross_functions.jl")
 
 export chebyshev_nodes,
        chebyshev_extrema,
