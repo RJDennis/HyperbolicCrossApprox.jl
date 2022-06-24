@@ -1,4 +1,4 @@
-function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2}) where {S <: Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2}) where {S<:Integer}
   
   multi_index = generate_multi_index(d,ind)
     
@@ -36,7 +36,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2}) where {
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S <: Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k)
   
@@ -76,7 +76,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S <: Intege
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S <: Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k,n)
     
@@ -114,7 +114,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S <: I
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) where {S <: Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::NTuple{N,S}) where {S<:Integer,N}
   
   multi_index = generate_multi_index(d,k,n)
       
@@ -158,7 +158,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
       
 end
 
-function hyperbolic_cross_grid(node_type::Function,ind::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {S <: Integer, T <: AbstractFloat}
+function hyperbolic_cross_grid(node_type::Function,ind::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
   
   if size(domain,2) != d
     error("domain is inconsistent with the number of dimensions")
@@ -174,7 +174,7 @@ function hyperbolic_cross_grid(node_type::Function,ind::Array{S,2},domain::Union
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain::Union{Array{T,1},Array{T,2}}) where {S <: Integer, T <: AbstractFloat}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
   
   if size(domain,2) != d
     error("domain is inconsistent with the number of dimensions")
@@ -190,7 +190,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain::Union{Array
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{S,Array{S,1}},domain::Union{Array{T,1},Array{T,2}}) where {S <: Integer, T <: AbstractFloat}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{S,NTuple{N,S}},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat,N}
   
   if size(domain,2) != d
     error("domain is inconsistent with the number of dimensions")

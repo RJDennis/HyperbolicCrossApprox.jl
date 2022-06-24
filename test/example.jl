@@ -49,7 +49,7 @@ function test_hyperbolic_cross_approx()
   # Now consider the ansiotropic case
 
   k = 7
-  n = [15, 11, 11, 11, 15]
+  n = (15, 11, 11, 11, 15)
   g3, m3 = hyperbolic_cross_grid(chebyshev_nodes,d,k,n)  # Construct the hyperbolic cross grid and the multi index
   y3 = test(g3)
   w3 = hyperbolic_cross_weights(y3,g3,m3)                   # Compute the hyperbolic cross weights

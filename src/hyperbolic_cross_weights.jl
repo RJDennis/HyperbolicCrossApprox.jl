@@ -1,4 +1,4 @@
-function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T <: AbstractFloat, S <: Integer}
+function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
   
@@ -137,4 +137,3 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},inverse_interpolation_ma
   return weights
   
 end
-  

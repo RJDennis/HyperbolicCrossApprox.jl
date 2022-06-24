@@ -1,4 +1,4 @@
-function generate_multi_index(d::S,k::S) where {S <: Integer} # Recursive function
+function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
 
   if d < 1
     error("d must be positive")
@@ -36,7 +36,7 @@ function generate_multi_index(d::S,k::S) where {S <: Integer} # Recursive functi
   end
 end
        
-function generate_multi_index(d::S,k::S,n::S) where {S <: Integer} # Recursive function
+function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive function
 
   if d < 1
     error("d must be positive")
@@ -89,7 +89,7 @@ function generate_multi_index(d::S,k::S,n::S) where {S <: Integer} # Recursive f
     
 end
   
-function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S <: Integer} # Recursive function
+function generate_multi_index(d::S,k::S,n::NTuple{N,S}) where {S<:Integer,N} # Recursive function
 
   if d < 1
     error("d must be positive")
@@ -126,10 +126,10 @@ function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S <: Integer} # Re
     return mi
   else
     mi_base = generate_multi_index(d-1,k,n[1:d-1])
-    N = size(mi_base,1)
-    mi = zeros(S,N*ki,d)
+    nn = size(mi_base,1)
+    mi = zeros(S,nn*ki,d)
     pos = 0
-    @inbounds @views for j = 1:N
+    @inbounds @views for j = 1:nn
       for i = 1:ki
         if prod(mi_base[j,:].+1)*i <= kprime
           pos += 1
