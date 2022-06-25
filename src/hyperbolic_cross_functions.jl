@@ -327,13 +327,13 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
       
 end
 
-function hyperbolic_cross_grid(node_type::Function,ind::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
+function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
   
   if size(domain,2) != d
     error("domain is inconsistent with the number of dimensions")
   end
     
-  (nodes, multi_index) = hyperbolic_cross_grid(node_type,ind)
+  (nodes, multi_index) = hyperbolic_cross_grid(node_type,d,ind)
     
   # Now scale the nodes to the desired domain
     
