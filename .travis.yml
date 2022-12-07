@@ -1,0 +1,14 @@
+language: julia
+os:
+  - linux
+  - windows
+julia:
+  - 1.6
+  - nightly
+  
+#script:
+#    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+#    - julia -e 'Pkg.clone(pwd()); Pkg.test("HyperbolicCrossApprox", coverage=true)'
+after_success:
+  # push coverage results to Codecov
+  - julia -e 'cd(Pkg.dir("HyperbolicCroccApprox")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
