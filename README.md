@@ -1,5 +1,8 @@
 # HyperbolicCrossApprox.jl
- 
+
+Introduction
+============
+
 This package implements a hyperbolic cross sparse-grid method for approximating multivariate continuous functions with Chebyshev polynomials as basis functions.  Flexibility is given over the resulting grid through parameters that govern the maximum number of points along each spatial dimension and the number of layers along each spatial dimension.  The package also allows for isotropic and anisotropic grids.
 
 Hyperbolic cross approximation is a sparse-grid alternative to Smolyak's method.  Where existing treatments of the hyperbolic cross method are based on non-equispaced fast Fourier methods, the treatment in this code is based on Chebyshev polynomials with the coefficients in the approximating function constructed using Lagrange interpolation.
@@ -22,7 +25,7 @@ using HyperbolicCrossApprox
 Approximating grid
 ------------------
 
-The nodes used to form the approximating grid can be computed using either the Chebyshev nodes (points of the first kind) or Chebyshev extrema (points of the second kind), with the approximating grid and the multi-index computed by
+The nodes used to form the approximating grid can be computed using either the Chebyshev nodes (points of the first kind), Chebyshev extrema (points of the second kind), the extended Chebyshev nodes, Vertesi nodes, or Legendre nodes, with the approximating grid and the multi-index computed by
 
 ```julia
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,domain)
@@ -36,7 +39,7 @@ grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 
 where `n` is either an interger or a 1d array of integers.
 
-In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`.
+In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`, `chebyshev_extended`, `vertesi_nodes`, or `legendre_nodes`.
 
 Polynomial coefficients
 -----------------------
@@ -70,19 +73,61 @@ y_hat = hyperbolic_cross_evaluate(weights,point,multi_ind,domain)
 
 where `point` (a 1d-array) is the point in the domain where the approximation is to be evaluated.
 
-Derivatives and gradients
--------------------------
+Derivatives, gradients, and hessians
+------------------------------------
 
-Lastly, the package can also be used to compute derivatives and gradients of the approximating function, as per
+Lastly, the package can also be used to compute derivatives of the approximating function, as per
 
 ```Julia
 deriv = hyperbolic_cross_derivative(weights,point,multi_ind,domain,pos)
 ```
 
-where `pos` is an integer reflecting the position of the variable being differentiated with respect to, and 
+where `pos` is an integer reflecting the number of the variable being differentiated with respect to.  The package can compute gradients according to 
 
 ```julia
 gradient = hyperbolic_cross_gradient(weights,point,multi_ind,domain)
+```
+
+and hessians according to
+
+```julia
+hess = hyperbolic_cross_hessian(weights,point,multi_ind,domain)
+```
+
+Multi-threading
+---------------
+
+There are multi-threaded functions to compute the polynomial weights and the interpolation matrix.  These multi-threaded functions are accessed by adding `_threaded` to the end of the funtion, as per
+
+```julia
+weights = hyperbolic_cross_weights_threaded(y,inv_interp_mat)
+```
+
+Useful structures
+-----------------
+
+The key structure to be aware of is the HCApproxPlan, which contains the key information needed to approximate a function.
+
+```julia
+d = 3
+k = 5
+domain = [2.0 2.0 2.0; -2.0 -2.0 -2.0]
+grid, mi = hyperbolic_cross_grid(chebyshev_nodes,d,k,domain)
+plan = HCApproxPlan(grid,mi,domain)
+```
+
+Once the approximation plan has been constructed it can be used to create functions to interpolate and to compute gradients and hessians.
+
+```julia
+f = hyperbolic_cross_interp(y,plan)
+g = hyperbolic_cross_gradient(y,plan)
+h = hyperbolic_cross_hessian(y,plan)
+
+point = [1.0, 1.0, 1.0]
+
+f(point)
+g(point)
+h(point)
 ```
 
 Related packages

@@ -1,3 +1,13 @@
+abstract type HCApproximationPlan end
+
+struct HCApproxPlan{S<:Integer,T<:AbstractFloat} <: HCApproximationPlan
+
+  grid::Union{Array{T,1},Array{T,2}}
+  multi_index::Union{Array{S,1},Array{S,2}}
+  domain::Union{Array{T,1},Array{T,2}}
+
+end
+
 function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
 
   if d < 1
@@ -11,12 +21,7 @@ function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
   kprime = k+1
   
   if d == 1
-    mi = zeros(S,kprime)
-    for i = 1:k+1
-      if i <= kprime
-        mi[i] = i-1
-      end
-    end
+    mi = [0:1:k;]
     return mi
   else
     mi_base = generate_multi_index(d-1,k)
@@ -59,16 +64,10 @@ function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive fun
   end
 
   kprime = k+1
-  #ki = Int((n-1)/2) + 1
   ki = div(n-1,2) + 1
   
   if d == 1
-    mi = zeros(S,ki)
-    for i = 1:ki
-      if i <= kprime
-        mi[i] = i-1
-      end
-    end
+    mi = [0:1:ki-1;]
     return mi
   else
     mi_base = generate_multi_index(d-1,k,n)
@@ -89,7 +88,7 @@ function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive fun
     
 end
   
-function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S<:Integer} # Recursive function
+function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where {S<:Integer,N} # Recursive function
 
   if d < 1
     error("d must be positive")
@@ -113,16 +112,10 @@ function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S<:Integer} # Recu
   end
   
   kprime = k + 1
-  #ki = Int((n[end]-1)/2) + 1
   ki = div(n[end]-1,2) + 1
  
   if d == 1
-    mi = zeros(S,ki)
-    for i = 1:ki
-      if i <= kprime
-        mi[i] = i-1
-      end
-    end
+    mi = [0:1:ki-1;]
     return mi
   else
     mi_base = generate_multi_index(d-1,k,n[1:d-1])
@@ -142,7 +135,7 @@ function generate_multi_index(d::S,k::S,n::Array{S,1}) where {S<:Integer} # Recu
   end
 end
   
-function determine_grid_size(p::Array{S,2}) where {S<:Integer}
+function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer}
     
   q = similar(p)
 
@@ -163,49 +156,11 @@ function determine_grid_size(p::Array{S,2}) where {S<:Integer}
     s += t
   end
     
-  return (s, size(q,2))
+  return (s,size(q,2))
    
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2}) where {S<:Integer}
-  
-  multi_index = generate_multi_index(d,ind)
-    
-  # Create base nodes to be used in the sparse grid
-    
-  base_nodes = node_type(n)
-  T = eltype(base_nodes)
-    
-  # Determine the unique nodes introduced at each higher level
-
-  unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
-  @inbounds for i in eachindex(multi_index)
-    if multi_index[i] == 0
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1]]
-    else
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1-multi_index[i]], base_nodes[Int((n-1)/2)+1+multi_index[i]]]
-    end
-  end
-
-  # Construct the hyperbolic cross from the unique nodes
-    
-  nodes = Array{T,2}(undef,determine_grid_size(multi_index))
-  l = 1
-  @inbounds for j in axes(multi_index,1)
-    new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
-    for i = 2:d
-      new_nodes = combine_nodes(new_nodes,unique_base_nodes[j,i])  # Here new_nodes becomes a 2d array
-    end
-    m = size(new_nodes,1)
-    nodes[l:l+m-1,:] = new_nodes
-    l += m
-  end
-    
-  return nodes, multi_index
-    
-end
-
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S<:Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k)
   
@@ -218,7 +173,11 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S<:Integer}
     
   # Determine the unique nodes introduced at each higher level
 
-  unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+  if d == 1
+    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+  else
+    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+  end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
       unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1]]
@@ -240,12 +199,16 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S) where {S<:Integer}
     nodes[l:l+m-1,:] = new_nodes
     l += m
   end
+  
+  # Now scale the nodes to the desired domain
     
+  nodes .= scale_nodes(nodes,domain)
+
   return nodes, multi_index
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S<:Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k,n)
     
@@ -256,7 +219,11 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S<:Int
     
   # Determine the unique nodes introduced at each higher level
 
-  unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+  if d == 1
+    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+  else
+    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+  end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
       unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1]]
@@ -279,14 +246,18 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S) where {S<:Int
     l += m
   end
     
+  # Now scale the nodes to the desired domain
+
+  nodes .= scale_nodes(nodes,domain)
+
   return nodes, multi_index
     
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) where {S<:Integer}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
   
   multi_index = generate_multi_index(d,k,n)
-      
+
   # Create base nodes to be used in the sparse grid
       
   T = Float64
@@ -298,8 +269,12 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
       
   # Determine the unique nodes introduced at each higher level
   
-  unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
-  for i in axes(multi_index,1)
+  if d == 1
+    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+  else
+    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+  end
+  @inbounds for i in axes(multi_index,1)
     for j = 1:d
       if multi_index[i,j] == 0
         unique_base_nodes[i,j] = [base_nodes[j][Int((n[j]-1)/2)+1]]
@@ -322,60 +297,16 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Array{S,1}) wher
     nodes[l:l+m-1,:] = new_nodes
     l += m
   end
-      
-  return nodes, multi_index
-      
-end
-
-function hyperbolic_cross_grid(node_type::Function,d::S,ind::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
   
-  if size(domain,2) != d
-    error("domain is inconsistent with the number of dimensions")
-  end
-    
-  (nodes, multi_index) = hyperbolic_cross_grid(node_type,d,ind)
-    
   # Now scale the nodes to the desired domain
-    
+
   nodes .= scale_nodes(nodes,domain)
-    
+
   return nodes, multi_index
-    
+
 end
 
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
-  
-  if size(domain,2) != d
-    error("domain is inconsistent with the number of dimensions")
-  end
-    
-  (nodes, multi_index) = hyperbolic_cross_grid(node_type,d,k)
-    
-  # Now scale the nodes to the desired domain
-    
-  nodes .= scale_nodes(nodes,domain)
-    
-  return nodes, multi_index
-    
-end
-
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{S,Array{S,1}},domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:AbstractFloat}
-  
-  if size(domain,2) != d
-    error("domain is inconsistent with the number of dimensions")
-  end
-    
-  (nodes, multi_index) = hyperbolic_cross_grid(node_type,d,k,n)
-    
-  # Now scale the nodes to the desired domain
-    
-  nodes .= scale_nodes(nodes,domain)
-    
-  return nodes, multi_index
-    
-end
-
-function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
   
@@ -390,13 +321,13 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},
   
     # Construct the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -425,7 +356,7 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},
   
 end
   
-function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -441,7 +372,7 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},
   
 end
   
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
   
@@ -456,13 +387,13 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
   
     # Construct the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
 
     # Compute the unique polynomial terms from the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -491,7 +422,7 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
 
 end
   
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -507,7 +438,7 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
   
 end
   
-function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
   
@@ -522,13 +453,13 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   
     # Construct the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -557,7 +488,7 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   
 end
   
-function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -573,7 +504,7 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   
 end
   
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
   
@@ -588,13 +519,13 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
   
     # Construct the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
   
-    for i in eachindex(unique_multi_index)
+    @inbounds for i in eachindex(unique_multi_index)
       if unique_multi_index[i] == 0
         unique_base_polynomials[i] = base_polynomials[i][:,1:1]
       else
@@ -623,7 +554,7 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
   
 end
   
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -647,13 +578,17 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},inverse_interpolation_ma
   
 end
 
-function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {R<:Number,S<:Integer}
   
     n = 2*maximum(multi_index,dims=1).+1
     d = length(n) # d is the number of dimensions
     
     base_polynomials        = Array{Array{R,2},1}(undef,d)
-    unique_base_polynomials = Array{Array{R,1},2}(undef,size(multi_index))
+    if d == 1
+      unique_base_polynomials = Array{Array{R,1},1}(undef,length(multi_index))
+    else
+      unique_base_polynomials = Array{Array{R,1},2}(undef,size(multi_index))
+    end
      
     # Construct the base polynomials
       
@@ -692,7 +627,7 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array
     
 end
     
-function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
     
     if size(domain,2) != length(node)
       error("domain is inconsistent with the number of dimensions")
@@ -711,7 +646,7 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Array
     
 end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
     poly = hyperbolic_cross_polynomial(node,multi_index)
 
@@ -721,7 +656,7 @@ function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},
 
 end
   
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if size(domain,2) != length(node)
     error("domain is inconsistent with the number of dimensions")
@@ -748,50 +683,59 @@ function hyperbolic_cross_evaluate(weights::Array{T,1},polynomial::Array{R,1}) w
 
 end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},multi_index::Array{S,2}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_interp(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
+
+  weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
   
-  function goo(x::Array{R,1}) where {R<:Number}
+  function hcross_interp(x::Array{R,1}) where {R<:Number}
   
-    return hyperbolic_cross_evaluate(weights,x,multi_index)
+    return hyperbolic_cross_evaluate(weights,x,plan.multi_index)
   
   end
   
-  return goo
+  return hcross_interp
   
 end
   
-function hyperbolic_cross_evaluate(weights::Array{T,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
   
-  function goo(x::Array{R,1}) where {R<:Number}
+  weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
   
-    return hyperbolic_cross_evaluate(weights,x,multi_index,domain)
+  function hcross_interp(x::Array{R,1}) where {R<:Number}
+  
+    return hyperbolic_cross_evaluate(weights,x,plan.multi_index)
   
   end
   
-  return goo
+  return hcross_interp
   
 end
 
-function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
     
   base_polynomials                   = Array{Array{R,2},1}(undef,d)
   base_polynomial_derivatives        = Array{Array{R,2},1}(undef,d)
-  unique_base_polynomials            = Array{Array{R,1},2}(undef,size(multi_index))
-  unique_base_polynomial_derivatives = Array{Array{R,1},2}(undef,size(multi_index))
-     
+  if d == 1
+    unique_base_polynomials            = Array{Array{R,1},1}(undef,length(multi_index))
+    unique_base_polynomial_derivatives = Array{Array{R,1},1}(undef,length(multi_index))
+  else
+    unique_base_polynomials            = Array{Array{R,1},2}(undef,size(multi_index))
+    unique_base_polynomial_derivatives = Array{Array{R,1},2}(undef,size(multi_index))
+  end
+
   # Construct the base polynomials
       
   for i = 1:d
-    base_polynomials[i] = chebyshev_polynomial(n[i]-1,node[i])
-    base_polynomial_derivatives[i] = derivative_of_chebyshev_polynomial(n[i],node[i])
+    base_polynomials[i] = chebyshev_polynomial(n[i]-1,point[i])
+    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i],point[i])
   end
       
   # Compute the unique polynomial terms from the base polynomials
       
-  for i in axes(multi_index,1)
+  @inbounds for i in axes(multi_index,1)
    for j = 1:d
       if multi_index[i,j] == 0
         unique_base_polynomials[i,j]            = [base_polynomials[j][1]]
@@ -836,47 +780,200 @@ function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_
   
 end
   
-function hyperbolic_cross_derivative(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-  node = copy(node)
+  point = copy(point)
 
-  if size(domain,2) != length(node)
+  if size(domain,2) != length(point)
     error("domain is inconsistent with the number of dimensions")
   end
   
-  d = length(node)
+  d = length(point)
   for i = 1:d
-    node[i] = normalize_node(node[i],domain[:,i])
+    point[i] = normalize_node(point[i],domain[:,i])
   end
   
-  evaluated_derivative = hyperbolic_cross_derivative(weights,node,multi_index,pos)
+  evaluated_derivative = hyperbolic_cross_derivative(weights,point,multi_index,pos)
   
-  return evaluated_derivative
+  return evaluated_derivative*(2.0/(domain[1,pos]-domain[2,pos]))
   
 end
   
-function hyperbolic_cross_gradient(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-  d = length(node)
+  d = length(point)
   gradient = Array{R,2}(undef,1,d)
   
   for i = 1:d
-    gradient[i] = hyperbolic_cross_derivative(weights,node,multi_index,i)
+    gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,i)
   end
   
   return gradient
   
 end
+
+function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-function hyperbolic_cross_gradient(weights::Array{T,1},node::Array{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
-  
-  d = length(node)
+  d = length(point)
   gradient = Array{R,2}(undef,1,d)
   
   for i = 1:d
-    gradient[i] = hyperbolic_cross_derivative(weights,node,multi_index,domain,i)
+    gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,domain,i)
   end
   
   return gradient
 
+end
+
+function hyperbolic_cross_gradient(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
+
+  weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
+  
+  function hcross_grad(x::Array{R,1}) where {R<:Number}
+  
+    return hyperbolic_cross_gradient(weights,x,plan.multi_index,plan.domain)
+  
+  end
+  
+  return hcross_grad
+  
+end
+  
+function hyperbolic_cross_gradient_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
+  
+  weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
+  
+  function hcross_grad(x::Array{R,1}) where {R<:Number}
+  
+    return hyperbolic_cross_gradient(weights,x,plan.multi_index,plan.domain)
+  
+  end
+  
+  return hcross_grad
+  
+end
+
+function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+  
+  point = copy(point)
+
+  if size(domain,2) != length(point)
+    error("domain is inconsistent with the number of dimensions")
+  end
+  
+  d = length(point)
+  for i = 1:d
+    point[i] = normalize_node(point[i],domain[:,i])
+  end
+  
+  n = 2*maximum(multi_index,dims=1).+1
+  d = length(n) # d is the number of dimensions
+  
+  hess = Array{T,2}(undef,d,d)
+
+  base_polynomials                   = Array{Array{R,2},1}(undef,d)
+  base_polynomial_derivatives        = Array{Array{R,2},1}(undef,d)
+  base_polynomial_sec_derivatives    = Array{Array{R,2},1}(undef,d)
+  if d == 1
+    unique_base_polynomials                = Array{Array{R,1},1}(undef,length(multi_index))
+    unique_base_polynomial_derivatives     = Array{Array{R,1},1}(undef,length(multi_index))
+    unique_base_polynomial_sec_derivatives = Array{Array{R,1},1}(undef,length(multi_index))
+  else
+    unique_base_polynomials                = Array{Array{R,1},2}(undef,size(multi_index))
+    unique_base_polynomial_derivatives     = Array{Array{R,1},2}(undef,size(multi_index))
+    unique_base_polynomial_sec_derivatives = Array{Array{R,1},2}(undef,size(multi_index))
+  end
+
+  # Construct the base polynomials
+      
+  for i = 1:d
+    base_polynomials[i] = chebyshev_polynomial(n[i]-1,point[i])
+    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i],point[i])
+    base_polynomial_sec_derivatives[i] = chebyshev_polynomial_sec_deriv(n[i],point[i])
+  end
+      
+  # Compute the unique polynomial terms from the base polynomials
+      
+  @inbounds for i in axes(multi_index,1)
+   for j = 1:d
+      if multi_index[i,j] == 0
+        unique_base_polynomials[i,j]                = [base_polynomials[j][1]]
+        unique_base_polynomial_derivatives[i,j]     = [base_polynomial_derivatives[j][1]]
+        unique_base_polynomial_sec_derivatives[i,j] = [base_polynomial_sec_derivatives[j][1]]
+      else
+        unique_base_polynomials[i,j]                = [base_polynomials[j][2*multi_index[i,j]], base_polynomials[j][2*multi_index[i,j]+1]]
+        unique_base_polynomial_derivatives[i,j]     = [base_polynomial_derivatives[j][2*multi_index[i,j]], base_polynomial_derivatives[j][2*multi_index[i,j]+1]]
+        unique_base_polynomial_sec_derivatives[i,j] = [base_polynomial_sec_derivatives[j][2*multi_index[i,j]], base_polynomial_sec_derivatives[j][2*multi_index[i,j]+1]]
+      end
+    end
+  end
+        
+  # Construct the first row of the interplation matrix
+      
+  polynomials = Array{R,1}(undef,length(weights))
+
+  @inbounds for c in CartesianIndices(hess)
+    l = 1
+    for j in axes(multi_index,1)
+      if 1 == c[1] == c[2]
+        new_polynomials = unique_base_polynomial_sec_derivatives[j,1]
+      elseif 1 == c[1] || 1 == c[2]
+        new_polynomials = unique_base_polynomial_derivatives[j,1]
+      else
+        new_polynomials = unique_base_polynomials[j,1]
+      end
+      for i = 2:size(multi_index,2)
+        if i == c[1] == c[2]
+          new_polynomials = kron(new_polynomials,unique_base_polynomial_sec_derivatives[j,i])
+        elseif i == c[1] || i == c[2]
+          new_polynomials = kron(new_polynomials,unique_base_polynomial_derivatives[j,i])
+        else
+          new_polynomials = kron(new_polynomials,unique_base_polynomials[j,i])
+        end
+      end
+      m = length(new_polynomials)
+      polynomials[l:l+m-1] = new_polynomials
+      l += m
+    end
+
+    evaluated_derivative = zero(T)
+  
+    for i in eachindex(polynomials)
+      evaluated_derivative += polynomials[i]*weights[i]
+    end
+  
+    hess[c] = evaluated_derivative*(2.0/(domain[1,c[1]]-domain[2,c[1]]))*(2.0/(domain[1,c[2]]-domain[2,c[2]]))
+
+  end
+  
+  return hess
+  
+end
+
+function hyperbolic_cross_hessian(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
+
+  weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
+  
+  function hcross_hess(x::Array{R,1}) where {R<:Number}
+  
+    return hyperbolic_cross_hessian(weights,x,plan.multi_index,plan.domain)
+  
+  end
+  
+  return hcross_hess
+  
+end
+  
+function hyperbolic_cross_hessian_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
+  
+  weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
+  
+  function hcross_hess(x::Array{R,1}) where {R<:Number}
+  
+    return hyperbolic_cross_hessian(weights,x,plan.multi_index,plan.domain)
+  
+  end
+  
+  return hcross_grad
+  
 end
