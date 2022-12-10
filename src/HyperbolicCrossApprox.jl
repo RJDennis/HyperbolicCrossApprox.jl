@@ -14,8 +14,11 @@ import ChebyshevApprox: normalize_node,
                         legendre_nodes
 
 using ThreadPools
+using LinearAlgebra
 
 include("hyperbolic_cross_functions.jl")
+
+export HCApproxPlan
 
 export chebyshev_nodes,
        chebyshev_extrema,

@@ -115,6 +115,10 @@ domain = [2.0 2.0 2.0; -2.0 -2.0 -2.0]
 grid, mi = hyperbolic_cross_grid(chebyshev_nodes,d,k,domain)
 plan = HCApproxPlan(grid,mi,domain)
 ```
+or
+```julia
+plan = hyperbolic_cross_plan(chebyshev_nodes,d,k,n,domain)
+```
 
 Once the approximation plan has been constructed it can be used to create functions to interpolate and to compute gradients and hessians.
 
@@ -129,6 +133,8 @@ f(point)
 g(point)
 h(point)
 ```
+
+There are multi-threaded versions of `hyperbolic_cross_interp`, `hyperbolic_cross_gradient`, and `hyperbolic_cross_hessian`.
 
 Related packages
 ----------------

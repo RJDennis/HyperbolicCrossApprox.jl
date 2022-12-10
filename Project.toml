@@ -4,6 +4,7 @@ authors = ["RJDennis <richard.dennis@glasgow.ac.uk>"]
 version = "0.2.5"
 
 [deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ChebyshevApprox = "17a596ad-87cd-578c-9b6d-01108c31dc04"
 SmolyakApprox = "6b19cf85-48de-5d9d-bfff-465abea14fab"
 ThreadPools = "b189fb0b-2eb5-4ed4-bc0c-d34c51242431"
