@@ -97,7 +97,7 @@ hess = hyperbolic_cross_hessian(weights,point,multi_ind,domain)
 Integration
 -----------
 
-Lastly, the package implements a Clenshaw-Curtis integration scheme.  To integrate a function with repsect to all variables over the approximating domain use
+Lastly, the package implements a Clenshaw-Curtis integration scheme.  To integrate a function with respect to all variables over the approximating domain use
 
 ```julia
 integral = hyperbolic_cross_integrate(weights,multi_index,domain)
