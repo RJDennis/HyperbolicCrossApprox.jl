@@ -76,7 +76,7 @@ where `point` (a 1d-array) is the point in the domain where the approximation is
 Derivatives, gradients, and hessians
 ------------------------------------
 
-Lastly, the package can also be used to compute derivatives of the approximating function, as per
+The package can also be used to compute derivatives of the approximating function, as per
 
 ```Julia
 deriv = hyperbolic_cross_derivative(weights,point,multi_ind,domain,pos)
@@ -93,6 +93,23 @@ and hessians according to
 ```julia
 hess = hyperbolic_cross_hessian(weights,point,multi_ind,domain)
 ```
+
+Integration
+-----------
+
+Lastly, the package implements a Clenshaw-Curtis integration scheme.  To integrate a function with repsect to all variables over the approximating domain use
+
+```julia
+integral = hyperbolic_cross_integrate(weights,multi_index,domain)
+```
+
+Alternatively, use
+
+```julia
+integral = hyperbolic_cross_integrate(weights,multi_index,domain,pos)
+```
+
+to integrate with respect to all variables other than variable `pos`, which returns a function of variable `pos`.
 
 Multi-threading
 ---------------
@@ -134,7 +151,7 @@ g(point)
 h(point)
 ```
 
-There are multi-threaded versions of `hyperbolic_cross_interp`, `hyperbolic_cross_gradient`, and `hyperbolic_cross_hessian`.
+There are multi-threaded versions of `hyperbolic_cross_interp`, `hyperbolic_cross_gradient`, and `hyperbolic_cross_hessian`; just add `_threaded` to the end of the function name.
 
 Related packages
 ----------------

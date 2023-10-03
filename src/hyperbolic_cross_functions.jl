@@ -306,6 +306,15 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
 
 end
 
+function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
+
+    g, mi = hyperbolic_cross_grid(node_type,d,k,n,domain)
+    plan = HCApproxPlan(g,mi,domain)
+
+    return plan
+
+end
+
 function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
@@ -689,7 +698,7 @@ function hyperbolic_cross_interp(y::AbstractArray{T,1},plan::P) where {T<:Abstra
   
   function hcross_interp(x::Array{R,1}) where {R<:Number}
   
-    return hyperbolic_cross_evaluate(weights,x,plan.multi_index)
+    return hyperbolic_cross_evaluate(weights,x,plan.multi_index,plan.domain)
   
   end
   
@@ -703,7 +712,7 @@ function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {
   
   function hcross_interp(x::Array{R,1}) where {R<:Number}
   
-    return hyperbolic_cross_evaluate(weights,x,plan.multi_index)
+    return hyperbolic_cross_evaluate(weights,x,plan.multi_index,plan.domain)
   
   end
   
@@ -730,7 +739,7 @@ function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi
       
   for i = 1:d
     base_polynomials[i] = chebyshev_polynomial(n[i]-1,point[i])
-    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i],point[i])
+    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i]-1,point[i])
   end
       
   # Compute the unique polynomial terms from the base polynomials
@@ -888,8 +897,8 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
       
   for i = 1:d
     base_polynomials[i] = chebyshev_polynomial(n[i]-1,point[i])
-    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i],point[i])
-    base_polynomial_sec_derivatives[i] = chebyshev_polynomial_sec_deriv(n[i],point[i])
+    base_polynomial_derivatives[i] = chebyshev_polynomial_deriv(n[i]-1,point[i])
+    base_polynomial_sec_derivatives[i] = chebyshev_polynomial_sec_deriv(n[i]-1,point[i])
   end
       
   # Compute the unique polynomial terms from the base polynomials
@@ -974,6 +983,172 @@ function hyperbolic_cross_hessian_threaded(y::AbstractArray{T,1},plan::P) where 
   
   end
   
-  return hcross_grad
+  return hcross_hess
   
+end
+
+function integrate_cheb_polys(order::S) where {S <: Integer}
+
+  # Integrates Chebyshev polynomials over the domain [-1,1]
+
+  p = zeros(order+1)
+    
+  for i in 1:order+1
+    if i == 2
+      p[i] = 0.0
+    else
+      p[i] = ((-1)^(i-1)+1)/(1-(i-1)^2)
+    end
+  end
+
+  return p
+
+end
+
+function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+  
+  # Uses Clenshaw-Curtis to integrate over all dimensions
+
+  n = 2*maximum(multi_index,dims=1).+1
+  d = length(n) # d is the number of dimensions
+    
+  base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
+  if d == 1
+    unique_base_polynomial_integrals = Array{Array{T,1},1}(undef,length(multi_index))
+  else
+    unique_base_polynomial_integrals = Array{Array{T,1},2}(undef,size(multi_index))
+  end
+
+  # Construct the base polynomials
+      
+  for i = 1:d
+    base_polynomial_integrals[i] = integrate_cheb_polys(n[i]-1)
+  end
+
+  # Compute the unique polynomial terms from the base polynomials
+      
+  @inbounds for i in axes(multi_index,1)
+   for j = 1:d
+      if multi_index[i,j] == 0
+        unique_base_polynomial_integrals[i,j] = [base_polynomial_integrals[j][1]]
+      else
+        unique_base_polynomial_integrals[i,j] = [base_polynomial_integrals[j][2*multi_index[i,j]], base_polynomial_integrals[j][2*multi_index[i,j]+1]]
+      end
+    end
+  end
+        
+  # Construct the first row of the interplation matrix
+      
+  polynomials = Array{T,1}(undef,length(weights))
+
+  l = 1
+  @inbounds for j in axes(multi_index,1)
+    new_polynomials = unique_base_polynomial_integrals[j,1]
+    for i = 2:size(multi_index,2)
+        new_polynomials = kron(new_polynomials,unique_base_polynomial_integrals[j,i])
+    end
+    m = length(new_polynomials)
+    polynomials[l:l+m-1] = new_polynomials
+    l += m
+  end
+  
+  evaluated_integral = zero(T)
+  
+  for i in eachindex(polynomials)
+    evaluated_integral += polynomials[i]*weights[i]
+  end
+
+  scale_factor = (domain[1,1]-domain[2,1])/2
+  for i in 2:size(multi_index,2)
+    scale_factor = scale_factor*(domain[1,i]-domain[2,i])/2
+  end
+  
+  return evaluated_integral*scale_factor
+  
+end
+
+function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,S<:Integer}
+  
+  # Uses Clenshaw-Curtis to integrate over all dimensions except for pos
+
+  function hyperbolic_cross_int(point::R) where {R <: Number}
+
+    point = normalize_node(point,domain[:,pos])
+  
+    n = 2*maximum(multi_index,dims=1).+1
+    d = length(n) # d is the number of dimensions
+    
+    base_polynomials                 = Array{Array{T,1},1}(undef,d)
+    base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
+    if d == 1
+      unique_base_polynomials          = Array{Array{T,1},1}(undef,length(multi_index))
+      unique_base_polynomial_integrals = Array{Array{T,1},1}(undef,length(multi_index))    
+    else
+      unique_base_polynomials          = Array{Array{T,1},2}(undef,size(multi_index))
+      unique_base_polynomial_integrals = Array{Array{T,1},2}(undef,size(multi_index))
+    end
+
+    # Construct the base polynomials
+      
+    for i = 1:d
+      base_polynomials[i]          = chebyshev_polynomial(n[i]-1,point)[:]
+      base_polynomial_integrals[i] = integrate_cheb_polys(n[i]-1)
+    end
+      
+    # Compute the unique polynomial terms from the base polynomials
+      
+    @inbounds for i in axes(multi_index,1)
+      for j = 1:d
+        if multi_index[i,j] == 0
+          unique_base_polynomials[i,j]          = [base_polynomials[j][1]]
+          unique_base_polynomial_integrals[i,j] = [base_polynomial_integrals[j][1]]
+        else
+          unique_base_polynomials[i,j]          = [base_polynomials[j][2*multi_index[i,j]], base_polynomials[j][2*multi_index[i,j]+1]]
+          unique_base_polynomial_integrals[i,j] = [base_polynomial_integrals[j][2*multi_index[i,j]], base_polynomial_integrals[j][2*multi_index[i,j]+1]]
+        end
+      end
+    end
+        
+    # Construct the first row of the interplation matrix
+      
+    polynomials = Array{T,1}(undef,length(weights))
+
+    l = 1
+    @inbounds for j in axes(multi_index,1)
+      if pos == 1
+        new_polynomials = unique_base_polynomials[j,1]
+      else
+        new_polynomials = unique_base_polynomial_integrals[j,1]
+      end
+      for i = 2:size(multi_index,2)
+        if pos == i
+          new_polynomials = kron(new_polynomials,unique_base_polynomials[j,i])
+        else
+          new_polynomials = kron(new_polynomials,unique_base_polynomial_integrals[j,i])
+        end
+      end
+      m = length(new_polynomials)
+      polynomials[l:l+m-1] = new_polynomials
+      l += m
+    end
+  
+    evaluated_integral = zero(T)
+  
+    for i in eachindex(polynomials)
+      evaluated_integral += polynomials[i]*weights[i]
+    end
+  
+    scale_factor = 1.0
+    for i in 1:size(multi_index,2)
+      if pos != i
+        scale_factor = scale_factor*(domain[1,i]-domain[2,i])/2
+      end
+    end
+    
+    return evaluated_integral*scale_factor
+    
+  end
+
+  return hyperbolic_cross_int
+
 end

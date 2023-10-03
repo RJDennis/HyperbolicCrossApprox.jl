@@ -1,7 +1,7 @@
 name = "HyperbolicCrossApprox"
 uuid = "db4fe9aa-a353-4142-ac3f-608941c5a4fc"
 authors = ["RJDennis <richard.dennis@glasgow.ac.uk>"]
-version = "0.2.6"
+version = "0.2.7"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -13,4 +13,4 @@ ThreadPools = "b189fb0b-2eb5-4ed4-bc0c-d34c51242431"
 julia = "^1.6"
 ThreadPools = "^2.0"
 ChebyshevApprox = "^0.3"
-SmolyakApprox = "^0.2"
+SmolyakApprox = "^0.3"

@@ -35,6 +35,7 @@ export chebyshev_nodes,
        hyperbolic_cross_derivative,
        hyperbolic_cross_gradient,
        hyperbolic_cross_hessian,
+       hyperbolic_cross_integrate,
        hyperbolic_cross_interp
 
 end
