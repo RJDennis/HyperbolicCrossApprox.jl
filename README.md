@@ -97,19 +97,14 @@ hess = hyperbolic_cross_hessian(weights,point,multi_ind,domain)
 Integration
 -----------
 
-Lastly, the package implements a Clenshaw-Curtis integration scheme.  To integrate a function with repsect to all variables over the approximating domain use
+Lastly, the package implements a Clenshaw-Curtis integration and a Guass-Chebyshev integration scheme.  To integrate a function with repsect to all variables over the approximating domain use
 
 ```julia
-integral = hyperbolic_cross_integrate(weights,multi_index,domain)
+integral = hyperbolic_cross_integrate(f,plan,:clenshaw_curtis)
+integral = hyperbolic_cross_integrate(f,plan,:gauss_chebyshev_quad)
 ```
 
-Alternatively, use
-
-```julia
-integral = hyperbolic_cross_integrate(weights,multi_index,domain,pos)
-```
-
-to integrate with respect to all variables other than variable `pos`, which returns a function of variable `pos`.
+where `f` is the function to be integrated and `plan` is a `HCApproxPlan` structure, described below. The `:gauss_chebyshev_quad` approach constructs the quadrature weights using a variant on "designed quadrature",  (Keshavarzzadeh, et al, (2018, SIAM J. SCI. COMPUT)). The `:clenshaw_curtis` method approximates the function to be integrated with a hyperbolic cross and then numerically integrates the approximation.
 
 Multi-threading
 ---------------
@@ -135,6 +130,7 @@ plan = HCApproxPlan(grid,mi,domain)
 or
 ```julia
 plan = hyperbolic_cross_plan(chebyshev_nodes,d,k,n,domain)
+plan = hyperbolic_cross_plan(chebyshev_nodes,d,k,domain)
 ```
 
 Once the approximation plan has been constructed it can be used to create functions to interpolate and to compute gradients and hessians.
@@ -163,7 +159,7 @@ Related packages
 References
 ----------
 
-Some useful references are
+Some useful references are:
 
 Dennis, R., (2021), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models", CAMA working paper number 93/2021, Australian National University.
 

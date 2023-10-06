@@ -315,6 +315,18 @@ function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
 
 end
 
+function hyperbolic_cross_plan(node_type::Function,d::S,k::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
+
+  n = [2k+1 for _ in 1:d]
+
+  g, mi = hyperbolic_cross_grid(node_type,d,k,n,domain)
+  plan = HCApproxPlan(g,mi,domain)
+
+  return plan
+
+end
+
+
 function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
   
   interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
@@ -1005,13 +1017,54 @@ function integrate_cheb_polys(order::S) where {S <: Integer}
 
 end
 
-function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_integrate(f::Function,plan::HCApproxPlan,method::Symbol)
+
+    if method == :clenshaw_curtis
+        integral = hyperbolic_cross_clenshaw_curtis(f,plan)
+    elseif method == :gauss_chebyshev_quad
+        integral = hyperbolic_cross_gauss_chebyshev_quad(f,plan)
+    else
+        error("Integration not implemented for that method")
+    end
+
+    return integral
+
+end
+
+#function hyperbolic_cross_integrate(f::Function,plan::HCApproxPlan,method::Symbol,pos::S) where {S <: Integer}
+
+#    if method == :clenshaw_curtis
+#        integral = hyperbolic_cross_clenshaw_curtis(f,plan,pos)
+#    elseif method == :gauss_chebyshev_quad
+#        integral = hyperbolic_cross_gauss_chebyshev_quad(f,plan,pos)
+#    else
+#        error("Integration not implemented for that method")
+#   end
+
+#    return integral
+
+#end
+
+function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan)
   
   # Uses Clenshaw-Curtis to integrate over all dimensions
+
+  grid        = plan.grid
+  multi_index = plan.multi_index
+  domain      = plan.domain
+
+  y = zeros(size(grid,1))
+  for i in eachindex(y)
+    y[i] = f(grid[i,:])
+  end
+
+  weights = hyperbolic_cross_weights(y,grid,multi_index,domain)
 
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
     
+  T = eltype(grid)
+
   base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
   if d == 1
     unique_base_polynomial_integrals = Array{Array{T,1},1}(undef,length(multi_index))
@@ -1067,9 +1120,20 @@ function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array
   
 end
 
-function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S) where {S <: Integer}
   
   # Uses Clenshaw-Curtis to integrate over all dimensions except for pos
+
+  grid        = plan.grid
+  multi_index = plan.multi_index
+  domain      = plan.domain
+
+  y = zeros(size(grid,1))
+  for i in eachindex(y)
+    y[i] = f(grid[i,:])
+  end
+
+  weights = hyperbolic_cross_weights(y,grid,multi_index,domain)
 
   function hyperbolic_cross_int(point::R) where {R <: Number}
 
@@ -1078,6 +1142,8 @@ function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array
     n = 2*maximum(multi_index,dims=1).+1
     d = length(n) # d is the number of dimensions
     
+    T = eltype(grid)
+
     base_polynomials                 = Array{Array{T,1},1}(undef,d)
     base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
     if d == 1
@@ -1150,5 +1216,39 @@ function hyperbolic_cross_integrate(weights::Array{T,1},multi_index::Union{Array
   end
 
   return hyperbolic_cross_int
+
+end
+
+function hyperbolic_cross_gauss_chebyshev_quad(f::Function,plan::HCApproxPlan)
+  
+  # Uses Gauss-Chebyshev quadrature to integrate over all dimensions
+  
+  grid        = plan.grid
+  multi_index = plan.multi_index
+  domain      = plan.domain
+
+  iim = hyperbolic_cross_inverse_interpolation_matrix(grid,multi_index,domain) 
+
+  d = size(grid,2)
+
+  e = zeros(1,size(grid,1))
+  e[1] = π^d
+  w = e*iim
+
+  y = zeros(size(grid,1))
+  for i in eachindex(y)
+    integrating_weights = sqrt(1.0-normalize_node(grid[i,1],domain[:,1])^2)
+    for j = 2:d
+      integrating_weights *= sqrt(1.0-normalize_node(grid[i,j],domain[:,j])^2)
+    end
+    y[i] = f(grid[i,:])*integrating_weights
+  end
+
+  scale_factor = (domain[1,1]-domain[2,1])/2
+  for i in 2:d
+    scale_factor = scale_factor*(domain[1,i]-domain[2,i])/2
+  end
+
+  return (w*y)[1]*scale_factor
 
 end
