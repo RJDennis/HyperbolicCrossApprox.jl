@@ -20,7 +20,8 @@ include("hyperbolic_cross_functions.jl")
 
 export HCApproxPlan
 
-export chebyshev_nodes,
+export hyperbolic_cross_plan,
+       chebyshev_nodes,
        chebyshev_extrema,
        chebyshev_extended,
        vertesi_nodes,
@@ -36,6 +37,7 @@ export chebyshev_nodes,
        hyperbolic_cross_gradient,
        hyperbolic_cross_hessian,
        hyperbolic_cross_integrate,
+       hyperbolic_cross_clenshaw_curtis,
        hyperbolic_cross_interp
 
 end
