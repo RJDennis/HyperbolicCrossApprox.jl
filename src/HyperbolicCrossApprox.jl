@@ -9,11 +9,8 @@ import ChebyshevApprox: normalize_node,
                         chebyshev_polynomial_sec_deriv,
                         chebyshev_nodes,
                         chebyshev_extrema,
-                        chebyshev_extended,
-                        vertesi_nodes,
-                        legendre_nodes
+                        chebyshev_extended
 
-using ThreadPools
 using LinearAlgebra
 
 include("hyperbolic_cross_functions.jl")
@@ -37,7 +34,6 @@ export hyperbolic_cross_plan,
        hyperbolic_cross_gradient,
        hyperbolic_cross_hessian,
        hyperbolic_cross_integrate,
-       hyperbolic_cross_clenshaw_curtis,
        hyperbolic_cross_interp
 
 end

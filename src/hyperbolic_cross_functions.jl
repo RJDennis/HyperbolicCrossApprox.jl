@@ -102,7 +102,7 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
     error("node number for each dimension must be given")
   end
   
-  for i = 1:d
+  for i in eachindex(n)
     if n[i] < 1
       error("n must be positive in all dimensions")
     end
@@ -135,7 +135,7 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
   end
 end
   
-function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer}
+function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer} # p is a multi-index
     
   q = similar(p)
 
@@ -180,9 +180,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-
   end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1]]
+      unique_base_nodes[i] = [base_nodes[k+1]]
     else
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1-multi_index[i]], base_nodes[Int((n-1)/2)+1+multi_index[i]]]
+      unique_base_nodes[i] = [base_nodes[k+1-multi_index[i]], base_nodes[k+1+multi_index[i]]]
     end
   end
 
@@ -226,9 +226,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1
   end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1]]
+      unique_base_nodes[i] = [base_nodes[div(n-1,2)+1]]
     else
-      unique_base_nodes[i] = [base_nodes[Int((n-1)/2)+1-multi_index[i]], base_nodes[Int((n-1)/2)+1+multi_index[i]]]
+      unique_base_nodes[i] = [base_nodes[div(n-1,2)+1-multi_index[i]], base_nodes[div(n-1,2)+1+multi_index[i]]]
     end
   end
 
@@ -277,9 +277,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   @inbounds for i in axes(multi_index,1)
     for j = 1:d
       if multi_index[i,j] == 0
-        unique_base_nodes[i,j] = [base_nodes[j][Int((n[j]-1)/2)+1]]
+        unique_base_nodes[i,j] = [base_nodes[j][div(n[j]-1,2)+1]]
       else
-        unique_base_nodes[i,j] = [base_nodes[j][Int((n[j]-1)/2)+1-multi_index[i,j]], base_nodes[j][Int((n[j]-1)/2)+1+multi_index[i,j]]]
+        unique_base_nodes[i,j] = [base_nodes[j][div(n[j]-1,2)+1-multi_index[i,j]], base_nodes[j][div(n[j]-1,2)+1+multi_index[i,j]]]
       end
     end
   end
@@ -401,7 +401,7 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
   
   unique_multi_index = sort(unique(multi_index))
 
-  @inbounds @sync @qthreads for k in axes(nodes,1)
+  @inbounds @sync Threads.@threads for k in axes(nodes,1)
   
     base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
     unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
@@ -533,7 +533,7 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
   
   unique_multi_index = sort(unique(multi_index))
  
-  @inbounds @sync @qthreads for k in axes(nodes,1)
+  @inbounds @sync Threads.@threads for k in axes(nodes,1)
 
     base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
     unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
