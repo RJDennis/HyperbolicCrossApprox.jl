@@ -1,7 +1,7 @@
 name = "HyperbolicCrossApprox"
 uuid = "db4fe9aa-a353-4142-ac3f-608941c5a4fc"
 authors = ["RJDennis <richard.dennis@glasgow.ac.uk>"]
-version = "0.3.0"
+version = "0.3.1"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -11,4 +11,4 @@ SmolyakApprox = "6b19cf85-48de-5d9d-bfff-465abea14fab"
 [compat]
 julia = "^1.6"
 ChebyshevApprox = "^0.4"
-SmolyakApprox = "^0.2"
+SmolyakApprox = "^0.3"
