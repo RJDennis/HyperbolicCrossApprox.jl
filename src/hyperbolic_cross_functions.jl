@@ -1,5 +1,10 @@
 abstract type HCApproximationPlan end
 
+"""
+HApproxPlan is an immutable struct that contains the information used to approximate a multi-dimensional function.
+HApproxPlan has three fields: the approximation grid, the multi-index associated with the polynomial, and the 
+approximation domain.
+""" 
 struct HCApproxPlan{S<:Integer,T<:AbstractFloat} <: HCApproximationPlan
 
   grid::Union{Array{T,1},Array{T,2}}
@@ -8,6 +13,29 @@ struct HCApproxPlan{S<:Integer,T<:AbstractFloat} <: HCApproximationPlan
 
 end
 
+"""
+Creates the multi-index for a ```d```-variable ansiotropic grid with order given by ```k```.  Returns
+a matrix of integers.
+
+Signature
+=========
+
+m_index = generate_multi_index(d,k)
+
+Example
+=======
+```
+julia> m_index = generate_multi_index(2,3)
+[0  0
+ 0  1
+ 0  2
+ 0  3
+ 1  0
+ 1  1
+ 2  0
+ 3  0]
+ ```
+"""
 function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
 
   if d < 1
@@ -40,7 +68,28 @@ function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
     return mi[1:pos,:]
   end
 end
-       
+
+"""
+Creates the multi-index for a ```d```-variable ansiotropic grid with order given by ```k``` and the maximum number
+nodes along each dimension given by ```n```.  Returns a matrix of integers.
+
+Signature
+=========
+
+m_index = generate_multi_index(d,k,n)
+
+Example
+=======
+```
+julia> m_index = generate_multi_index(2,3,5)
+[0  0
+ 0  1
+ 0  2
+ 1  0
+ 1  1
+ 2  0]
+```
+"""
 function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive function
 
   if d < 1
@@ -88,6 +137,26 @@ function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive fun
     
 end
   
+"""
+Creates the multi-index for a ```d```-variable ansiotropic grid with order given by ```k``` and the maximum number
+nodes along each dimension given by the vector ```n```.  Returns a matrix of integers.
+
+Signature
+=========
+
+m_index = generate_multi_index(d,k,n)
+
+Example
+=======
+```
+julia> m_index = generate_multi_index(2,3,[5,3])
+[0  0
+ 0  1
+ 1  0
+ 1  1
+ 2  0]
+```
+"""
 function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where {S<:Integer,N} # Recursive function
 
   if d < 1
@@ -135,7 +204,7 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
   end
 end
   
-function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer} # p is a multi-index
+function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer} # p is a multi-index, internal function, not exported
     
   q = similar(p)
 
@@ -160,6 +229,23 @@ function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer}
    
 end
 
+"""
+Uses the ```node_type``` function to construt the ```d```-dimensional hyperbolic cross grid with approximation layer
+```k``` and ```domain``` (defaults to [-1.0,1.0]^d).  Returns the approximating grid and the associated multi index.
+
+Signatures
+==========
+
+grid, multi_index = hyperbolic_cross_grid(node_type,d,k)
+grid, multi_index = hyperbolic_cross_grid(chebyshev_extrema,d,k,domain)
+
+Examples
+========
+```
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,2)
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,2,[3.0 1.5; 2.0 0.5])
+```
+"""
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k)
@@ -202,12 +288,30 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-
   
   # Now scale the nodes to the desired domain
     
-  nodes .= scale_nodes(nodes,domain)
+  scale_nodes!(nodes,domain)
 
   return nodes, multi_index
     
 end
 
+"""
+Uses the ```node_type``` function to construt the ```d```-dimensional hyperbolic cross grid with approximation layer
+```k```, and spacial node-maximum, ```n```, and ```domain``` (defaults to [-1.0,1.0]^d).  Returns the approximating 
+grid and the associated multi index.
+
+Signatures
+==========
+
+grid, multi_index = hyperbolic_cross_grid(node_type,d,k,n)
+grid, multi_index = hyperbolic_cross_grid(chebyshev_extrema,d,k,n,domain)
+
+Examples
+========
+```
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,5)
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[3.0 1.5; 2.0 0.5])
+```
+"""
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
   multi_index = generate_multi_index(d,k,n)
@@ -248,12 +352,30 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1
     
   # Now scale the nodes to the desired domain
 
-  nodes .= scale_nodes(nodes,domain)
+  scale_nodes!(nodes,domain)
 
   return nodes, multi_index
     
 end
 
+"""
+Uses the ```node_type``` function to construt the ```d```-dimensional hyperbolic cross grid with approximation layer
+```k```, and spacial node-maximum, ```n```, and ```domain``` (defaults to [-1.0,1.0]^d).  Returns the approximating 
+grid and the associated multi index.
+
+Signatures
+==========
+
+grid, multi_index = hyperbolic_cross_grid(node_type,d,k,n)
+grid, multi_index = hyperbolic_cross_grid(chebyshev_extrema,d,k,n,domain)
+
+Examples
+========
+```
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,[5,3])
+julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,[7,5],[3.0 1.5; 2.0 0.5])
+```
+"""
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
   
   multi_index = generate_multi_index(d,k,n)
@@ -300,12 +422,34 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   
   # Now scale the nodes to the desired domain
 
-  nodes .= scale_nodes(nodes,domain)
+  scale_nodes!(nodes,domain)
 
   return nodes, multi_index
 
 end
 
+"""
+Constructs a hyperbolic cross approximation plan, given the ```node_type``` function, the number of dimensions,
+```d```, the approximation layers, ```k```, the maximum number of spacial nodes, ```n``` (defaults to 2k+1), and the approximation
+```domain``` (defaults to [-1.0,1.0]^d).  Returns an HApproxPlan struct.
+
+Signatures
+==========
+
+hplan = hyperbolic_cross_plan(node_type,d,k)
+hplan = hyperbolic_cross_plan(node_type,d,k,n)
+hplan = hyperbolic_cross_plan(node_type,d,k,domain)
+hplan = hyperbolic_cross_plan(node_type,d,k,n,domain)
+
+Examples
+========
+```
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,2)
+julia> hplan = hyperbolic_cross_plan(chebyshev_nodes,2,3,[5,3])
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[3.0 1.5; 2.0 0.5])
+julia> hplan = hyperbolic_cross_plan(chebyshev_nodes,2,3,[7,5],[3.0 1.5; 2.0 0.5])
+```
+"""
 function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
 
     g, mi = hyperbolic_cross_grid(node_type,d,k,n,domain)
@@ -326,10 +470,36 @@ function hyperbolic_cross_plan(node_type::Function,d::S,k::S,domain=[ones(1,d);-
 
 end
 
+"""
+Uses Chebyshev polynomials as basis functions to compute the weights in a hyperbolic cross polynomial approximation
+given the approximation sample, ```y```, the approximation ```grid```, the ```multi_index```, and the approximation 
+```domain``` (defaults to [-1.0,1.0]^d).  Returns a vector containing the weights in the hyperbolic cross polynomial.
 
-function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
+Signatures
+==========
+
+w = hyperbolic_cross_weights(y,grid,multi_index)
+w = hyperbolic_cross_weights(y,grid,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,[7,5],[1.0 1.0; 0.0 0.0])
+julia> f(x) = sum(x.^2)
+julia> y = [f(g[i,:]) for i in axes(g,1)]
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+```
+"""
+function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
+  # Normalize nodes to the [-1.0 1.0] interval
+  
+  grid = copy(grid)
+  for i in axes(grid,2)
+    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
+  end
+   
+  interpolation_matrix = zeros(size(grid,1),size(grid,1))
   
   n = 2*maximum(multi_index)+1
   
@@ -338,12 +508,12 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},
   base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
   unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
  
-  @inbounds for k in axes(nodes,1)
+  @inbounds for k in axes(grid,1)
   
     # Construct the base polynomials
   
     @inbounds for i in eachindex(unique_multi_index)
-      base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
+      base_polynomials[i] = chebyshev_polynomial(n-1,grid[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
@@ -376,32 +546,44 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},
   return weights
   
 end
-  
-function hyperbolic_cross_weights(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+
+"""
+Uses Chebyshev polynomials as basis functions to compute using multi-threading the weights in a hyperbolic cross 
+polynomial approximation given the approximation sample, ```y```, the approximation ```grid```, the 
+```multi_index```, and the approximation ```domain``` (defaults to [-1.0,1.0]^d).  Returns a vector containing
+the weights in the hyperbolic cross polynomial.
+
+Signatures
+==========
+
+w = hyperbolic_cross_weights_threaded(y,grid,multi_index)
+w = hyperbolic_cross_weights_threaded(y,grid,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,[7,5],[1.0 1.0; 0.0 0.0])
+julia> f(x) = sum(x.^2)
+julia> y = [f(g[i,:]) for i in axes(g,1)]
+julia> w = hyperbolic_cross_weights_threaded(y,g,mi,[1.0 1.0; 0.0 0.0])
+```
+"""
+function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
-  d = size(multi_index,2)
-  grid = similar(nodes)
-  for i = 1:d
-    grid[:,i] = normalize_node(nodes[:,i],domain[:,i])
+  grid = copy(grid)
+  for i in axes(grid,2)
+    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
   end
-  
-  weights = hyperbolic_cross_weights(y,grid,multi_index)
-  
-  return weights
-  
-end
-  
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
-  
-  interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
+
+  interpolation_matrix = zeros(size(grid,1),size(grid,1))
   
   n = 2*maximum(multi_index)+1
   
   unique_multi_index = sort(unique(multi_index))
 
-  @inbounds @sync Threads.@threads for k in axes(nodes,1)
+  @inbounds @sync Threads.@threads for k in axes(grid,1)
   
     base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
     unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
@@ -409,7 +591,7 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
     # Construct the base polynomials
   
     @inbounds for i in eachindex(unique_multi_index)
-      base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
+      base_polynomials[i] = chebyshev_polynomial(n-1,grid[k,:])
     end
 
     # Compute the unique polynomial terms from the base polynomials
@@ -442,26 +624,35 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Ar
   return weights
 
 end
-  
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+
+"""
+Uses Chebyshev polynomials as basis functions to compute the inverse interpolation matrix for a hyperbolic cross
+polynomial approximation given the approximation grid, ```grid```, the ```multi_index```, and the approximation 
+```domain``` (defaults to [-1.0,1.0]^d).  Returns a matrix containing the inverse interoplation matrix.
+
+Signatures
+==========
+
+iim = hyperbolic_cross_inverse_interpolation_matrix(grid,multi_index)
+iim = hyperbolic_cross_inverse_interpolation_matrix(grid,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
+```
+"""
+function hyperbolic_cross_inverse_interpolation_matrix(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
   # Normalize nodes to the [-1.0 1.0] interval
   
-  d = size(multi_index,2)
-  grid = similar(nodes)
-  for i = 1:d
-    grid[:,i] = normalize_node(nodes[:,i],domain[:,i])
+  grid = copy(grid)
+  for i in axes(grid,2)
+    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
   end
-  
-  weights = hyperbolic_cross_weights_threaded(y,grid,multi_index)
-  
-  return weights
-  
-end
-  
-function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
-  
-  interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
+
+  interpolation_matrix = zeros(size(grid,1),size(grid,1))
   
   n = 2*maximum(multi_index)+1
   
@@ -470,12 +661,12 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
   unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
  
-  @inbounds for k in axes(nodes,1)
+  @inbounds for k in axes(grid,1)
   
     # Construct the base polynomials
   
     @inbounds for i in eachindex(unique_multi_index)
-      base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
+      base_polynomials[i] = chebyshev_polynomial(n-1,grid[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
@@ -508,32 +699,42 @@ function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},A
   return inverse_interpolation_matrix
   
 end
+
+"""
+Uses Chebyshev polynomials as basis functions to compute using multi-threading the inverse interpolation matrix 
+for a hyperbolic cross polynomial approximation given the approximation grid, ```grid```, the ```multi_index```,
+and the approximation ```domain``` (defaults to [-1.0,1.0]^d).  Returns a matrix containing the inverse 
+interoplation matrix.
+
+Signatures
+==========
+
+iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(grid,multi_index)
+iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(grid,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(g,mi)
+```
+"""
+function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-function hyperbolic_cross_inverse_interpolation_matrix(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
+  # Normalize grid to the [-1.0 1.0] interval
   
-  # Normalize nodes to the [-1.0 1.0] interval
-  
-  d = size(multi_index,2)
-  grid = similar(nodes)
-  for i = 1:d
-    grid[:,i] = normalize_node(nodes[:,i],domain[:,i])
+  grid = copy(grid)
+  for i in axes(grid,2)
+    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
   end
-  
-  inverse_interpolation_matrix = hyperbolic_cross_inverse_interpolation_matrix(grid,multi_index)
-  
-  return inverse_interpolation_matrix
-  
-end
-  
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,S<:Integer}
-  
-  interpolation_matrix = zeros(size(nodes,1),size(nodes,1))
+
+  interpolation_matrix = zeros(size(grid,1),size(grid,1))
   
   n = 2*maximum(multi_index)+1
   
   unique_multi_index = sort(unique(multi_index))
  
-  @inbounds @sync Threads.@threads for k in axes(nodes,1)
+  @inbounds @sync Threads.@threads for k in axes(grid,1)
 
     base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
     unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
@@ -541,7 +742,7 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
     # Construct the base polynomials
   
     @inbounds for i in eachindex(unique_multi_index)
-      base_polynomials[i] = chebyshev_polynomial(n-1,nodes[k,:])
+      base_polynomials[i] = chebyshev_polynomial(n-1,grid[k,:])
     end
     
     # Compute the unique polynomial terms from the base polynomials
@@ -574,23 +775,27 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Arr
   return inverse_interpolation_matrix
   
 end
-  
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(nodes::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,S<:Integer}
-  
-  # Normalize nodes to the [-1.0 1.0] interval
-  
-  d = size(multi_index,2)
-  grid = similar(nodes)
-  for i = 1:d
-    grid[:,i] = normalize_node(nodes[:,i],domain[:,i])
-  end
-  
-  inverse_interpolation_matrix = hyperbolic_cross_inverse_interpolation_matrix_threaded(grid,multi_index)
-  
-  return inverse_interpolation_matrix
-  
-end
-  
+
+"""
+Uses Chebyshev polynomials as basis functions to compute the weights in a hyperbolic cross polynomial
+approximation given the approximation sample, ```y```, the ```inverse interpolation matrix```.
+Returns a vector containing the weights in the hyperbolic cross polynomial.
+
+Signature
+=========
+
+w = hyperbolic_cross_weights(y,inverse_interpolation_matrix)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> f(x) = sum(x.^2)
+julia> y = [f(g[i,:]) for i in axes(g,1)]
+julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
+julia> w = hyperbolic_cross_weights(y,iim)
+```
+"""
 function hyperbolic_cross_weights(y::AbstractArray{T,1},inverse_interpolation_matrix::Array{T,2}) where {T<:AbstractFloat}
   
   weights = inverse_interpolation_matrix*y
@@ -599,8 +804,33 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},inverse_interpolation_ma
   
 end
 
-function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {R<:Number,S<:Integer}
+"""
+Computes a hyperbolic cross polynomial given the ```point```, the ```multi-index```, and the approximation ```domain```
+(defaults to [-1.0,1.0]^d).  Returns a vector containing the basis functions in the polynomial evaluated at ```point```.
+
+Signatures
+==========
+
+hpoly = hyperbolic_cross_polynomial(point,multi_index)
+hpoly = hyperbolic_cross_polynomial(point,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> point = g[5,:]
+julia> hpoly = hyperbolic_cross_polynomial(point,mi,[1.0 1.0; 0.0 0.0])
+```
+"""
+function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Number,S<:Integer}
   
+  # Normalize grid to the [-1.0 1.0] interval
+  
+    point = copy(point)
+    for i in eachindex(point)
+      point[i] = normalize_node(point[i],domain[:,i])
+    end  
+
     n = 2*maximum(multi_index,dims=1).+1
     d = length(n) # d is the number of dimensions
     
@@ -614,7 +844,7 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union
     # Construct the base polynomials
       
     @inbounds for i = 1:d
-      base_polynomials[i] = chebyshev_polynomial(n[i]-1,node[i])
+      base_polynomials[i] = chebyshev_polynomial(n[i]-1,point[i])
     end
       
     # Compute the unique polynomial terms from the base polynomials
@@ -647,55 +877,64 @@ function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union
     return polynomial
     
 end
-    
-function hyperbolic_cross_polynomial(node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
-    
-    if size(domain,2) != length(node)
-      error("domain is inconsistent with the number of dimensions")
-    end
-    
-    node = copy(node)
-  
-    d = length(node)
-    for i = 1:d
-      node[i] = normalize_node(node[i],domain[:,i])
-    end
-    
-    polynomial = hyperbolic_cross_polynomial(node,multi_index)
-  
-    return polynomial
-    
-end
 
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+"""
+Evaluates a hyperbolic cross polynomial formed using Chebyshev basis functions, given the ```weights```, the 
+```point``` at which to evaluate the polynomial, the ```multi_index```, and the approximation ```domain``` 
+(defaults to [-1.0,1.0]^d).  Returns a scalar.
+
+Signatures
+==========
+
+yhat = hyperbolic_cross_evaluate(weights,point,multi_index)
+yhat = hyperbolic_cross_evaluate(weights,point,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+julia> yhat = hyperbolic_cross_evaluate(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
+0.6100559317314179
+```
+"""
+function hyperbolic_cross_evaluate(weights::Array{T,1},point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-    poly = hyperbolic_cross_polynomial(node,multi_index)
+    point = copy(point)
+
+    for i in eachindex(point)
+      point[i] = normalize_node(point[i],domain[:,i])
+    end
+
+    poly = hyperbolic_cross_polynomial(point,multi_index)
 
     estimate = weights'poly
 
     return estimate
 
 end
-  
-function hyperbolic_cross_evaluate(weights::Array{T,1},node::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
-  
-  if size(domain,2) != length(node)
-    error("domain is inconsistent with the number of dimensions")
-  end
-  
-  node = copy(node)
 
-  d = length(node)
-  for i = 1:d
-    node[i] = normalize_node(node[i],domain[:,i])
-  end
-  
-  estimate = hyperbolic_cross_evaluate(weights,node,multi_index)
+"""
+Evaluates a hyperbolic cross polynomial formed using Chebyshev basis functions, given the ```weights```and the
+hyperbolic cross polynomial.  Returns a scalar.
 
-  return estimate
-  
-end
+Signature
+=========
 
+yhat = hyperbolic_cross_evaluate(weights,poly)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+julia> hpoly = hyperbolic_cross_polynomial([0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
+julia> yhat = hyperbolic_cross_evaluate(w,hpoly)
+0.6100559317314179
+```
+"""
 function hyperbolic_cross_evaluate(weights::Array{T,1},polynomial::Array{R,1}) where {T<:AbstractFloat,R<:Number}
 
     estimate = weights'polynomial
@@ -704,6 +943,26 @@ function hyperbolic_cross_evaluate(weights::Array{T,1},polynomial::Array{R,1}) w
 
 end
 
+"""
+Creates an interpolating function for a hyperbolic cross approximation given the sampling points, ```y```, and the
+approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+f = hyperbolic_cross_interp(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[7,7],[1.0 1.0; 0.0 0.0])
+julia> f = hyperbolic_cross_interp(y,hplan)
+julia> f([0.37,0.71])
+0.5638586549437409
+```
+"""
 function hyperbolic_cross_interp(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
@@ -718,6 +977,26 @@ function hyperbolic_cross_interp(y::AbstractArray{T,1},plan::P) where {T<:Abstra
   
 end
   
+"""
+Uses multi-threading to create an interpolating function for a hyperbolic cross approximation given the sampling
+points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+f = hyperbolic_cross_interp_threaded(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[7,7],[1.0 1.0; 0.0 0.0])
+julia> f = hyperbolic_cross_interp_threaded(y,hplan)
+julia> f([0.37,0.71])
+0.5638586549437409
+```
+"""
 function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
@@ -732,7 +1011,7 @@ function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {
   
 end
 
-function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function _hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer} # Internal function, not exported
   
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
@@ -800,7 +1079,29 @@ function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi
   return evaluated_derivative
   
 end
-  
+
+"""
+Computes the partial derivative of a hyperbolic cross polynomial formed using Chebyshev basis functions, given the 
+```weights```, the ```point``` at which to evaluate the polynomial, the ```multi_index```, the approximation 
+```domain```, and the index of the variable to differentiate with respect to, ```pos```.  Returns a scalar.
+
+Signature
+=========
+
+deriv = hyperbolic_cross_derivative(weights,point,multi_index,domain,pos)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+julia> deriv1 = hyperbolic_cross_derivative(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0],1)
+0.5157820877272242
+julia> deriv2 = hyperbolic_cross_derivative(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0],2)
+0.5514971149820203
+```
+"""
 function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   point = copy(point)
@@ -814,26 +1115,34 @@ function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi
     point[i] = normalize_node(point[i],domain[:,i])
   end
   
-  evaluated_derivative = hyperbolic_cross_derivative(weights,point,multi_index,pos)
+  evaluated_derivative = _hyperbolic_cross_derivative(weights,point,multi_index,pos)
   
   return evaluated_derivative*(2.0/(domain[1,pos]-domain[2,pos]))
   
 end
-  
-function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
-  
-  d = length(point)
-  gradient = Array{R,2}(undef,1,d)
-  
-  for i = 1:d
-    gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,i)
-  end
-  
-  return gradient
-  
-end
 
-function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+"""
+Computes the gradient a hyperbolic cross polynomial formed using Chebyshev basis functions, given the
+```weights```, the ```point``` at which to evaluate the polynomial, the ```multi_index```, and the
+approximation ```domain``` (defaults to [-1.0,1.0]^d).  Returns a one-row matrix.
+
+Signatures
+==========
+
+grad = hyperbolic_cross_gradient(weights,point,multi_index)
+grad = hyperbolic_cross_gradient(weights,point,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+julia> grad = hyperbolic_cross_gradient(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
+[0.515782  0.551497]
+```
+"""
+function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   d = length(point)
   gradient = Array{R,2}(undef,1,d)
@@ -846,6 +1155,26 @@ function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_i
 
 end
 
+"""
+Creates an interpolating function to compute the gradient of a hyperbolic cross polynomial given the sampling
+points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+grad = hyperbolic_cross_gradient(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[7,7],[1.0 1.0; 0.0 0.0])
+julia> grad = hyperbolic_cross_gradient(y,hplan)
+julia> grad([0.37,0.71])
+[0.515782  0.551497]
+```
+"""
 function hyperbolic_cross_gradient(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
@@ -859,7 +1188,27 @@ function hyperbolic_cross_gradient(y::AbstractArray{T,1},plan::P) where {T<:Abst
   return hcross_grad
   
 end
-  
+
+"""
+Creates an interpolating function that uses multi-threading to compute the gradient of a hyperbolic cross polynomial
+  given the sampling   points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+grad = hyperbolic_cross_gradient_threaded(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,7,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[7,7],[1.0 1.0; 0.0 0.0])
+julia> grad = hyperbolic_cross_gradient_threaded(y,hplan)
+julia> grad([0.37,0.71])
+[0.515782  0.551497]
+```
+"""
 function hyperbolic_cross_gradient_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
@@ -874,7 +1223,29 @@ function hyperbolic_cross_gradient_threaded(y::AbstractArray{T,1},plan::P) where
   
 end
 
-function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}}) where {T<:AbstractFloat,R<:Number,S<:Integer}
+"""
+Computes the hessian of a hyperbolic cross polynomial formed using Chebyshev basis functions, given the 
+```weights```, the ```point``` at which to evaluate the polynomial, the ```multi_index```, and the
+approximation ```domain``` (defaults to [-1.0,1.0]^d).  Returns a matrix.
+
+Signatures
+==========
+
+hess = hyperbolic_cross_hessian(weights,point,multi_index)
+hess = hyperbolic_cross_hessian(weights,point,multi_index,domain)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,11,23,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
+julia> hess = hyperbolic_cross_hessian(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
+[-4.0189     0.466767
+  0.466767  -0.20577]
+```
+"""
+function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   point = copy(point)
 
@@ -882,8 +1253,7 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
     error("domain is inconsistent with the number of dimensions")
   end
   
-  d = length(point)
-  for i = 1:d
+  for i in eachindex(point)
     point[i] = normalize_node(point[i],domain[:,i])
   end
   
@@ -971,6 +1341,27 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
   
 end
 
+"""
+Creates an interpolating function to compute the hessian of a hyperbolic cross polynomial given the sampling
+points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+grad = hyperbolic_cross_hessian(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,11,23,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,11,[23,23],[1.0 1.0; 0.0 0.0])
+julia> hess = hyperbolic_cross_hessian(y,hplan)
+julia> hess([0.37,0.71])
+[-4.0189     0.466767
+  0.466767  -0.20577]
+```
+"""
 function hyperbolic_cross_hessian(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
@@ -984,7 +1375,28 @@ function hyperbolic_cross_hessian(y::AbstractArray{T,1},plan::P) where {T<:Abstr
   return hcross_hess
   
 end
-  
+
+"""
+Creates an interpolating function that uses multi-threading to compute the hessian of a hyperbolic cross polynomial
+  given the sampling points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+
+Signature
+=========
+
+grad = hyperbolic_cross_hessian_threaded(y,plan)
+
+Example
+=======
+```
+julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,11,23,[1.0 1.0; 0.0 0.0])
+julia> y = g[:,1].^0.3.*g[:,2].^0.7
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,11,[23,23],[1.0 1.0; 0.0 0.0])
+julia> hess = hyperbolic_cross_hessian_threaded(y,hplan)
+julia> hess([0.37,0.71])
+[-4.0189     0.466767
+  0.466767  -0.20577]
+```
+"""
 function hyperbolic_cross_hessian_threaded(y::AbstractArray{T,1},plan::P) where {T<:AbstractFloat,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
@@ -999,7 +1411,7 @@ function hyperbolic_cross_hessian_threaded(y::AbstractArray{T,1},plan::P) where 
   
 end
 
-function integrate_cheb_polys(order::S) where {S <: Integer}
+function integrate_cheb_polys(order::S) where {S <: Integer} # Internal function, not exported
 
   # Integrates Chebyshev polynomials over the domain [-1,1]
 
@@ -1017,6 +1429,27 @@ function integrate_cheb_polys(order::S) where {S <: Integer}
 
 end
 
+"""
+Numerically integrates a function, ```f```, over all dimensions by approximating the function with a hyperbolic
+cross polynomial according to the approximation ```plan```, using either :clenshaw_curtis or gauss_Chebyshev_quad 
+as ```method```.  Returns a scalar.
+
+Signature
+=========
+
+integral = hyperbolic_cross_integrate(f,plan,method)
+
+Example
+=======
+```
+julia> f(x) = sum(x.^2)
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,4,8,[17,17,17,17],[ones(1,4); zeros(1,4)])
+julia> integral = hyperbolic_cross_integrate(f,hplan,:clenshaw_curtis)
+1.3333333333336967
+julia> integral = hyperbolic_cross_integrate(f,hplan,:gauss_chebyshev_quad)
+0.6897405247069276
+```
+"""
 function hyperbolic_cross_integrate(f::Function,plan::HCApproxPlan,method::Symbol)
 
     if method == :clenshaw_curtis
@@ -1031,20 +1464,24 @@ function hyperbolic_cross_integrate(f::Function,plan::HCApproxPlan,method::Symbo
 
 end
 
-#function hyperbolic_cross_integrate(f::Function,plan::HCApproxPlan,method::Symbol,pos::S) where {S <: Integer}
+"""
+Uses the Clenshaw-Curtis method to numerically integrates a function, ```f```, over all dimensions by approximating
+the function with a hyperbolic cross polynomial according to the approximation ```plan```.  Returns a scalar.
 
-#    if method == :clenshaw_curtis
-#        integral = hyperbolic_cross_clenshaw_curtis(f,plan,pos)
-#    elseif method == :gauss_chebyshev_quad
-#        integral = hyperbolic_cross_gauss_chebyshev_quad(f,plan,pos)
-#    else
-#        error("Integration not implemented for that method")
-#   end
+Signature
+=========
 
-#    return integral
+integral = hyperbolic_cross_clenshaw_curtis(f,plan)
 
-#end
-
+Example
+=======
+```
+julia> f(x) = sum(x.^2)
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,4,8,[17,17,17,17],[ones(1,4); zeros(1,4)])
+julia> integral = hyperbolic_cross_clenshaw_curtis(f,hplan)
+1.3333333333336967
+```
+"""
 function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan)
   
   # Uses Clenshaw-Curtis to integrate over all dimensions
@@ -1120,6 +1557,26 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan)
   
 end
 
+"""
+Uses the Clenshaw-Curtis method to numerically integrates a function, ```f```, over all dimensions except ```pos```
+by approximating the function with a hyperbolic cross polynomial according to the approximation ```plan```.
+Returns a function.
+
+Signature
+=========
+
+integral = hyperbolic_cross_clenshaw_curtis(f,plan,pos)
+
+Example
+=======
+```
+julia> f(x) = sum(x.^2)
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,4,8,[17,17,17,17],[ones(1,4); zeros(1,4)])
+julia> integral = hyperbolic_cross_clenshaw_curtis(f,hplan,4)
+julia> integral(0.5)
+1.2500000000001648
+```
+"""
 function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S) where {S <: Integer}
   
   # Uses Clenshaw-Curtis to integrate over all dimensions except for pos
@@ -1219,6 +1676,24 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S)
 
 end
 
+"""
+Uses Gauss-Chebyshev quadrature to numerically integrates a function, ```f```, over all dimensions by approximating
+the function with a hyperbolic cross polynomial according to the approximation ```plan```.  Returns a scalar.
+
+Signature
+=========
+
+integral = hyperbolic_cross_gauss_chebyshev_quad(f,plan)
+
+Example
+=======
+```
+julia> f(x) = sum(x.^2)
+julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,4,8,[17,17,17,17],[ones(1,4); zeros(1,4)])
+julia> integral = hyperbolic_cross_gauss_chebyshev_quad(f,hplan)
+0.6897405247069276
+```
+"""
 function hyperbolic_cross_gauss_chebyshev_quad(f::Function,plan::HCApproxPlan)
   
   # Uses Gauss-Chebyshev quadrature to integrate over all dimensions

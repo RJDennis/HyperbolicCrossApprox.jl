@@ -39,9 +39,11 @@ function test_hyperbolic_cross_derivative()
 
   y_actual = test(point')
 
-  derivatives_2 = hyperbolic_cross_gradient(weights,point,multi_ind)
-  derivatives_3 = hyperbolic_cross_derivative(weights,point,multi_ind,1)
-  derivatives_4 = hyperbolic_cross_derivative(weights,point,multi_ind,3)
+  dom = [ones(1,5); -ones(1,5)]
+
+  derivatives_2 = hyperbolic_cross_gradient(weights,point,multi_ind,dom)
+  derivatives_3 = hyperbolic_cross_derivative(weights,point,multi_ind,dom,1)
+  derivatives_4 = hyperbolic_cross_derivative(weights,point,multi_ind,dom,3)
 
   return derivatives_2, derivatives_3, derivatives_4
 

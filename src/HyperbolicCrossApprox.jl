@@ -1,9 +1,9 @@
 module HyperbolicCrossApprox
 
-import SmolyakApprox: scale_nodes,
-                      combine_nodes
+import SmolyakApprox: scale_nodes!, # Not exposed by SmolyakApprox
+                      combine_nodes # Not exposed by SmolyakApprox
 
-import ChebyshevApprox: normalize_node,
+import ChebyshevApprox: normalize_node, # Not exposed by ChebyshevApprox
                         chebyshev_polynomial,
                         chebyshev_polynomial_deriv,
                         chebyshev_polynomial_sec_deriv,
