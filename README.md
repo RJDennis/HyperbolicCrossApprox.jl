@@ -25,7 +25,7 @@ using HyperbolicCrossApprox
 Approximating grid
 ------------------
 
-The nodes used to form the approximating grid can be computed using either the Chebyshev nodes (points of the first kind), Chebyshev extrema (points of the second kind), the extended Chebyshev nodes, Vertesi nodes, or Legendre nodes, with the approximating grid and the multi-index computed by
+The nodes used to form the approximating grid can be computed using either the Chebyshev nodes (points of the first kind), Chebyshev extrema (points of the second kind), or the extended Chebyshev nodes, with the approximating grid and the multi-index computed by
 
 ```julia
 grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,domain)
@@ -39,7 +39,7 @@ grid, multi_ind = hyperbolic_cross_grid(chebyshev_nodes,d,k,n,domain)
 
 where `n` is either an interger or a 1d array of integers.
 
-In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`, `chebyshev_extended`, `vertesi_nodes`, or `legendre_nodes`.
+In the functions above, `chebyshev_nodes` can be replaced with `chebyshev_extrema`, or `chebyshev_extended`.
 
 Polynomial coefficients
 -----------------------
@@ -161,7 +161,7 @@ References
 
 Some useful references are:
 
-Dennis, R., (2021), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models", CAMA working paper number 93/2021, Australian National University.
+Dennis, R., (2024), "Using a Hyperbolic Cross to Solve Non-linear Macroeconomic Models", Journal of Economic Dynamics and Control, 163, 104860.
 
 Döhler, M., Kunis, S., and D. Potts, (2010), "Nonequispaced Hyperbolic Cross Fast Fourier Transform", *SIAM Journal on Numerical Analysis*, 47, (6), pp. 4415-4428.
 
