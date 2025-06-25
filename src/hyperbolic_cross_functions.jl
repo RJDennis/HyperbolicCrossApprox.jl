@@ -230,6 +230,35 @@ function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer}
 end
 
 """
+Ensures the approximation domain has the expected form.
+
+Signatures
+==========
+
+domain = check_domain(dom)
+
+Example
+=======
+
+```
+julia> dom = [-1.0 2.0; 2.0 -1.0]
+julia> domain = check_domain(dom)
+```
+"""
+function check_domain(dom::Array{T,2}) where {T<:AbstractFloat}
+
+  domain = similar(dom)
+
+  for i in axes(dom,2)
+    domain[1,i] = max(dom[1,i],dom[2,i])
+    domain[2,i] = min(dom[1,i],dom[2,i])
+  end
+
+  return domain
+
+end
+
+"""
 Uses the ```node_type``` function to construt the ```d```-dimensional hyperbolic cross grid with approximation layer
 ```k``` and ```domain``` (defaults to [-1.0,1.0]^d).  Returns the approximating grid and the associated multi index.
 
