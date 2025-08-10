@@ -542,7 +542,7 @@ julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(size(grid,2),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -622,7 +622,7 @@ julia> w = hyperbolic_cross_weights_threaded(y,g,mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(size(grid,2),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -699,7 +699,7 @@ julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
 """
 function hyperbolic_cross_inverse_interpolation_matrix(grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(size(grid,2),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -777,7 +777,7 @@ julia> iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(g,mi)
 """
 function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(size(grid,2),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   # Normalize grid to the [-1.0 1.0] interval
   
@@ -886,7 +886,7 @@ function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Arra
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(length(point),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   # Normalize grid to the [-1.0 1.0] interval
   
@@ -969,7 +969,7 @@ function hyperbolic_cross_evaluate(weights::Array{T,1},point::AbstractArray{R,1}
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(length(point),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   point = copy(point)
 
@@ -1178,7 +1178,7 @@ function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(length(point),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   point = copy(point)
  
@@ -1220,7 +1220,7 @@ function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_i
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(length(point),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   d = length(point)
   gradient = Array{R,2}(undef,1,d)
@@ -1329,7 +1329,7 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(length(point),domain)
+  dom = check_domain(size(multi_index,2),domain)
 
   point = copy(point)
 
