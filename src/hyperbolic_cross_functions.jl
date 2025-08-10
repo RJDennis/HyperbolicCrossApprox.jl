@@ -260,7 +260,8 @@ function check_domain(d::S,domain::Union{Array{T,1},Array{T,2}}) where {S<:Integ
 
   for i in 1:n[2]
     if dom[1,i] < dom[2,i]
-      dom[2,i], dom[1,i] = dom[1,1], dom[2,i]
+      dom[1,i] = maximum(domain[:,i])
+      dom[2,i] = minimum(domain[:,i])
     end
   end
 
