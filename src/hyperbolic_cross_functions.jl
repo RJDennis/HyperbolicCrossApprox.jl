@@ -7,8 +7,8 @@ approximation domain.
 """ 
 struct HCApproxPlan{S<:Integer,T<:AbstractFloat} <: HCApproximationPlan
 
-  grid::Union{Array{T,1},Array{T,2}}
-  multi_index::Union{Array{S,1},Array{S,2}}
+  grid::Array{T,2}
+  multi_index::Array{S,2}
   domain::Array{T,2}
 
 end
@@ -49,7 +49,7 @@ function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
   kprime = k+1
   
   if d == 1
-    mi = [0:1:k;]
+    mi = [0:1:k;;] # mi is always a matrix
     return mi
   else
     mi_base = generate_multi_index(d-1,k)
@@ -116,7 +116,7 @@ function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive fun
   ki = div(n-1,2) + 1
   
   if d == 1
-    mi = [0:1:ki-1;]
+    mi = [0:1:ki-1;;] # mi is always a matrix
     return mi
   else
     mi_base = generate_multi_index(d-1,k,n)
@@ -184,7 +184,7 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
   ki = div(n[end]-1,2) + 1
  
   if d == 1
-    mi = [0:1:ki-1;]
+    mi = [0:1:ki-1;;] # mi is always a matrix
     return mi
   else
     mi_base = generate_multi_index(d-1,k,n[1:d-1])
@@ -204,7 +204,7 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
   end
 end
   
-function determine_grid_size(p::Union{Array{S,1},Array{S,2}}) where {S<:Integer} # p is a multi-index, internal function, not exported
+function determine_grid_size(p::Array{S,2}) where {S<:Integer} # p is a multi-index, internal function, not exported
     
   q = similar(p)
 
@@ -539,9 +539,9 @@ julia> y = [f(g[i,:]) for i in axes(g,1)]
 julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(d,domain)
+  dom = check_domain(size(grid,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -619,9 +619,9 @@ julia> y = [f(g[i,:]) for i in axes(g,1)]
 julia> w = hyperbolic_cross_weights_threaded(y,g,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(d,domain)
+  dom = check_domain(size(grid,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -696,9 +696,9 @@ julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
 julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
 ```
 """
-function hyperbolic_cross_inverse_interpolation_matrix(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix(grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(d,domain)
+  dom = check_domain(size(grid,2),domain)
 
   # Normalize nodes to the [-1.0 1.0] interval
   
@@ -774,9 +774,9 @@ julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
 julia> iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(g,mi)
 ```
 """
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::Array{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
-  dom = check_domain(d,domain)
+  dom = check_domain(size(grid,2),domain)
 
   # Normalize grid to the [-1.0 1.0] interval
   
@@ -879,7 +879,7 @@ julia> point = g[5,:]
 julia> hpoly = hyperbolic_cross_polynomial(point,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Number,S<:Integer}
+function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Array{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Number,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -962,13 +962,13 @@ julia> yhat = hyperbolic_cross_evaluate(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 0.6100559317314179
 ```
 """
-function hyperbolic_cross_evaluate(weights::Array{T,1},point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_evaluate(weights::Array{T,1},point::AbstractArray{R,1},multi_index::Array{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
 
-  dom = check_domain(d,domain)
+  dom = check_domain(length(point),domain)
 
   point = copy(point)
 
@@ -1080,7 +1080,7 @@ function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {
   
 end
 
-function _hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer} # Internal function, not exported
+function _hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Array{S,2},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer} # Internal function, not exported
   
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
@@ -1171,7 +1171,7 @@ julia> deriv2 = hyperbolic_cross_derivative(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0],
 0.5514971149820203
 ```
 """
-function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Array{S,2},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1213,7 +1213,7 @@ julia> grad = hyperbolic_cross_gradient(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 [0.515782  0.551497]
 ```
 """
-function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Array{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1322,7 +1322,7 @@ julia> hess = hyperbolic_cross_hessian(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
   0.466767  -0.20577]
 ```
 """
-function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
+function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Array{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
