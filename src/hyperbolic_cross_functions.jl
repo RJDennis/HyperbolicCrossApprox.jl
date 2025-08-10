@@ -9,7 +9,7 @@ struct HCApproxPlan{S<:Integer,T<:AbstractFloat} <: HCApproximationPlan
 
   grid::Union{Array{T,1},Array{T,2}}
   multi_index::Union{Array{S,1},Array{S,2}}
-  domain::Union{Array{T,1},Array{T,2}}
+  domain::Array{T,2}
 
 end
 
@@ -245,21 +245,31 @@ julia> dom = [-1.0 2.0; 2.0 -1.0]
 julia> domain = check_domain(dom)
 ```
 """
-function check_domain(dom::Array{T,2}) where {T<:AbstractFloat}
+function check_domain(d::S,domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer, T<:AbstractFloat}
 
-  domain = similar(dom)
-
-  for i in axes(dom,2)
-    domain[1,i] = max(dom[1,i],dom[2,i])
-    domain[2,i] = min(dom[1,i],dom[2,i])
+  if ndims(domain) == 1 # domain is a vector, so convert to a matrix
+    dom = reshape(domain,2,1)
+  else
+    dom = copy(domain)
   end
 
-  return domain
+  n = size(dom)
+  if d != n[2]
+    error("The size of 'domain' is inconsistent with the number of variables entering the function.")
+  end
+
+  for i in 1:n[2]
+    if dom[1,i] < dom[2,i]
+      dom[2,i], dom[1,i] = dom[1,1], dom[2,i]
+    end
+  end
+
+  return dom
 
 end
 
 """
-Uses the ```node_type``` function to construt the ```d```-dimensional hyperbolic cross grid with approximation layer
+Uses the ```node_type``` function to construct the ```d```-dimensional hyperbolic cross grid with approximation layer
 ```k``` and ```domain``` (defaults to [-1.0,1.0]^d).  Returns the approximating grid and the associated multi index.
 
 Signatures
@@ -277,6 +287,8 @@ julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,2,[3.0 1.5; 2.0
 """
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
+  dom = check_domain(d,domain)
+
   multi_index = generate_multi_index(d,k)
   
   n = 2*k+1
@@ -316,8 +328,8 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-
   end
   
   # Now scale the nodes to the desired domain
-    
-  scale_nodes!(nodes,domain)
+  
+  scale_nodes!(nodes,dom)
 
   return nodes, multi_index
     
@@ -343,6 +355,8 @@ julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[3.0 1.5; 2
 """
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
   
+  dom = check_domain(d,domain)
+
   multi_index = generate_multi_index(d,k,n)
     
   # Create base nodes to be used in the sparse grid
@@ -381,7 +395,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1
     
   # Now scale the nodes to the desired domain
 
-  scale_nodes!(nodes,domain)
+  scale_nodes!(nodes,dom)
 
   return nodes, multi_index
     
@@ -407,6 +421,8 @@ julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,[7,5],[3.0 1.
 """
 function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
   
+  dom = check_domain(d,domain)
+
   multi_index = generate_multi_index(d,k,n)
 
   # Create base nodes to be used in the sparse grid
@@ -451,7 +467,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   
   # Now scale the nodes to the desired domain
 
-  scale_nodes!(nodes,domain)
+  scale_nodes!(nodes,dom)
 
   return nodes, multi_index
 
@@ -481,19 +497,23 @@ julia> hplan = hyperbolic_cross_plan(chebyshev_nodes,2,3,[7,5],[3.0 1.5; 2.0 0.5
 """
 function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
 
-    g, mi = hyperbolic_cross_grid(node_type,d,k,n,domain)
-    plan = HCApproxPlan(g,mi,domain)
+  dom = check_domain(d,domain)
 
-    return plan
+  g, mi = hyperbolic_cross_grid(node_type,d,k,n,dom)
+  plan = HCApproxPlan(g,mi,dom)
+
+  return plan
 
 end
 
 function hyperbolic_cross_plan(node_type::Function,d::S,k::S,domain=[ones(1,d);-ones(1,d)]) where {S<:Integer}
 
+  dom = check_domain(d,domain)
+
   n = [2k+1 for _ in 1:d]
 
-  g, mi = hyperbolic_cross_grid(node_type,d,k,n,domain)
-  plan = HCApproxPlan(g,mi,domain)
+  g, mi = hyperbolic_cross_grid(node_type,d,k,n,dom)
+  plan = HCApproxPlan(g,mi,dom)
 
   return plan
 
@@ -521,11 +541,13 @@ julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
+  dom = check_domain(d,domain)
+
   # Normalize nodes to the [-1.0 1.0] interval
   
   grid = copy(grid)
   for i in axes(grid,2)
-    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
+    grid[:,i] = normalize_node(grid[:,i],dom[:,i])
   end
    
   interpolation_matrix = zeros(size(grid,1),size(grid,1))
@@ -599,11 +621,13 @@ julia> w = hyperbolic_cross_weights_threaded(y,g,mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
+  dom = check_domain(d,domain)
+
   # Normalize nodes to the [-1.0 1.0] interval
   
   grid = copy(grid)
   for i in axes(grid,2)
-    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
+    grid[:,i] = normalize_node(grid[:,i],dom[:,i])
   end
 
   interpolation_matrix = zeros(size(grid,1),size(grid,1))
@@ -674,11 +698,13 @@ julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
 """
 function hyperbolic_cross_inverse_interpolation_matrix(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
+  dom = check_domain(d,domain)
+
   # Normalize nodes to the [-1.0 1.0] interval
   
   grid = copy(grid)
   for i in axes(grid,2)
-    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
+    grid[:,i] = normalize_node(grid[:,i],dom[:,i])
   end
 
   interpolation_matrix = zeros(size(grid,1),size(grid,1))
@@ -750,11 +776,13 @@ julia> iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(g,mi)
 """
 function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::Union{Array{T,1},Array{T,2}},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:AbstractFloat,S<:Integer}
   
+  dom = check_domain(d,domain)
+
   # Normalize grid to the [-1.0 1.0] interval
   
   grid = copy(grid)
   for i in axes(grid,2)
-    grid[:,i] = normalize_node(grid[:,i],domain[:,i])
+    grid[:,i] = normalize_node(grid[:,i],dom[:,i])
   end
 
   interpolation_matrix = zeros(size(grid,1),size(grid,1))
@@ -853,11 +881,17 @@ julia> hpoly = hyperbolic_cross_polynomial(point,mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Number,S<:Integer}
   
+  if length(point) != size(domain,2)
+    error("Inconsistency between the length of 'point' and the size of 'domain'.")
+  end
+
+  dom = check_domain(length(point),domain)
+
   # Normalize grid to the [-1.0 1.0] interval
   
     point = copy(point)
     for i in eachindex(point)
-      point[i] = normalize_node(point[i],domain[:,i])
+      point[i] = normalize_node(point[i],dom[:,i])
     end  
 
     n = 2*maximum(multi_index,dims=1).+1
@@ -888,7 +922,7 @@ function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Unio
       end
     end
         
-    # Construct the first row of the interplation matrix
+    # Construct the hyperbolic cross polynomial
 
     n = determine_grid_size(multi_index)
     polynomial = Array{R,1}(undef,n[1])
@@ -930,22 +964,28 @@ julia> yhat = hyperbolic_cross_evaluate(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_evaluate(weights::Array{T,1},point::AbstractArray{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-    point = copy(point)
+  if length(point) != size(domain,2)
+    error("Inconsistency between the length of 'point' and the size of 'domain'.")
+  end
 
-    for i in eachindex(point)
-      point[i] = normalize_node(point[i],domain[:,i])
-    end
+  dom = check_domain(d,domain)
 
-    poly = hyperbolic_cross_polynomial(point,multi_index)
+  point = copy(point)
 
-    estimate = weights'poly
+  for i in eachindex(point)
+    point[i] = normalize_node(point[i],dom[:,i])
+  end
 
-    return estimate
+  poly = hyperbolic_cross_polynomial(point,multi_index)
+
+  estimate = weights'poly
+
+  return estimate
 
 end
 
 """
-Evaluates a hyperbolic cross polynomial formed using Chebyshev basis functions, given the ```weights```and the
+Evaluates a hyperbolic cross polynomial formed using Chebyshev basis functions, given the ```weights``` and the
 hyperbolic cross polynomial.  Returns a scalar.
 
 Signature
@@ -1133,20 +1173,22 @@ julia> deriv2 = hyperbolic_cross_derivative(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0],
 """
 function hyperbolic_cross_derivative(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
-  point = copy(point)
-
-  if size(domain,2) != length(point)
-    error("domain is inconsistent with the number of dimensions")
+  if length(point) != size(domain,2)
+    error("Inconsistency between the length of 'point' and the size of 'domain'.")
   end
-  
+
+  dom = check_domain(length(point),domain)
+
+  point = copy(point)
+ 
   d = length(point)
   for i = 1:d
-    point[i] = normalize_node(point[i],domain[:,i])
+    point[i] = normalize_node(point[i],dom[:,i])
   end
   
   evaluated_derivative = _hyperbolic_cross_derivative(weights,point,multi_index,pos)
   
-  return evaluated_derivative*(2.0/(domain[1,pos]-domain[2,pos]))
+  return evaluated_derivative*(2.0/(dom[1,pos]-dom[2,pos]))
   
 end
 
@@ -1173,11 +1215,17 @@ julia> grad = hyperbolic_cross_gradient(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_gradient(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
+  if length(point) != size(domain,2)
+    error("Inconsistency between the length of 'point' and the size of 'domain'.")
+  end
+
+  dom = check_domain(length(point),domain)
+
   d = length(point)
   gradient = Array{R,2}(undef,1,d)
   
   for i = 1:d
-    gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,domain,i)
+    gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,dom,i)
   end
   
   return gradient
@@ -1220,7 +1268,7 @@ end
 
 """
 Creates an interpolating function that uses multi-threading to compute the gradient of a hyperbolic cross polynomial
-  given the sampling   points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
+  given the sampling points, ```y```, and the approximation ```plan```.  Returns an interpolating function.
 
 Signature
 =========
@@ -1276,6 +1324,12 @@ julia> hess = hyperbolic_cross_hessian(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 """
 function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_index::Union{Array{S,1},Array{S,2}},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:AbstractFloat,R<:Number,S<:Integer}
   
+  if length(point) != size(domain,2)
+    error("Inconsistency between the length of 'point' and the size of 'domain'.")
+  end
+
+  dom = check_domain(length(point),domain)
+
   point = copy(point)
 
   if size(domain,2) != length(point)
@@ -1283,7 +1337,7 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
   end
   
   for i in eachindex(point)
-    point[i] = normalize_node(point[i],domain[:,i])
+    point[i] = normalize_node(point[i],dom[:,i])
   end
   
   n = 2*maximum(multi_index,dims=1).+1
@@ -1362,7 +1416,7 @@ function hyperbolic_cross_hessian(weights::Array{T,1},point::Array{R,1},multi_in
       evaluated_derivative += polynomials[i]*weights[i]
     end
   
-    hess[c] = evaluated_derivative*(2.0/(domain[1,c[1]]-domain[2,c[1]]))*(2.0/(domain[1,c[2]]-domain[2,c[2]]))
+    hess[c] = evaluated_derivative*(2.0/(dom[1,c[1]]-dom[2,c[1]]))*(2.0/(dom[1,c[2]]-dom[2,c[2]]))
 
   end
   
