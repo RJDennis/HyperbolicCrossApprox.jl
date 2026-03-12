@@ -49,24 +49,26 @@ function generate_multi_index(d::S,k::S) where {S<:Integer} # Recursive function
   kprime = k+1
   
   if d == 1
-    mi = [0:1:k;;] # mi is always a matrix
-    return mi
-  else
-    mi_base = generate_multi_index(d-1,k)
-    N = size(mi_base,1)
-    mi = zeros(S,N*kprime,d)
-    pos = 0
-    @inbounds @views for j = 1:N
-      for i = 1:k+1
-        if prod(mi_base[j,:].+1)*i <= kprime
-          pos += 1
-          mi[pos,1:d-1] .= mi_base[j,:]
-          mi[pos,d] = i-1
-        end
+    return [0:1:k;;] # mi is always a matrix
+  end
+
+  mi_base = generate_multi_index(d-1,k)
+  N       = size(mi_base,1)
+  mi      = Matrix{S}(undef,N*kprime,d)
+  pos = 0
+  @inbounds for j = 1:N
+    rprod = prod(mi_base[j,:].+1)
+    for i = 1:k+1
+      if rprod*i <= kprime
+        pos += 1
+        @views mi[pos,1:d-1] .= mi_base[j,:]
+        mi[pos,d] = i-1
       end
     end
-    return mi[1:pos,:]
   end
+
+  return mi[1:pos,:]
+
 end
 
 """
@@ -116,25 +118,26 @@ function generate_multi_index(d::S,k::S,n::S) where {S<:Integer} # Recursive fun
   ki = div(n-1,2) + 1
   
   if d == 1
-    mi = [0:1:ki-1;;] # mi is always a matrix
-    return mi
-  else
-    mi_base = generate_multi_index(d-1,k,n)
-    N = size(mi_base,1)
-    mi = zeros(S,N*ki,d)
-    pos = 0
-    @inbounds @views for j = 1:N
-      for i = 1:ki
-        if prod(mi_base[j,:].+1)*i <= kprime
-          pos += 1
-          mi[pos,1:d-1] .= mi_base[j,:]
-          mi[pos,d] = i-1
-        end
+    return [0:1:ki-1;;] # mi is always a matrix
+  end
+
+  mi_base = generate_multi_index(d-1,k,n)
+  N = size(mi_base,1)
+  mi = Matrix{S}(undef,N*ki,d)
+  pos = 0
+  @inbounds for j = 1:N
+    rprod = prod(mi_base[j,:].+1)
+    for i = 1:ki
+      if rprod*i <= kprime
+        pos += 1
+        @views mi[pos,1:d-1] .= mi_base[j,:]
+        mi[pos,d] = i-1
       end
     end
-    return mi[1:pos,:]
   end
-    
+
+  return mi[1:pos,:]
+
 end
   
 """
@@ -157,7 +160,7 @@ julia> m_index = generate_multi_index(2,3,[5,3])
  2  0]
 ```
 """
-function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where {S<:Integer,N} # Recursive function
+function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},AbstractVector{S}}) where {S<:Integer,N} # Recursive function
 
   if d < 1
     error("d must be positive")
@@ -184,49 +187,37 @@ function generate_multi_index(d::S,k::S,n::Union{NTuple{N,S},Array{S,1}}) where 
   ki = div(n[end]-1,2) + 1
  
   if d == 1
-    mi = [0:1:ki-1;;] # mi is always a matrix
-    return mi
-  else
-    mi_base = generate_multi_index(d-1,k,n[1:d-1])
-    nn = size(mi_base,1)
-    mi = zeros(S,nn*ki,d)
-    pos = 0
-    @inbounds @views for j = 1:nn
-      for i = 1:ki
-        if prod(mi_base[j,:].+1)*i <= kprime
-          pos += 1
-          mi[pos,1:d-1] .= mi_base[j,:]
-          mi[pos,d] = i-1
-        end
+    return [0:1:ki-1;;] # mi is always a matrix
+  end
+
+  mi_base = generate_multi_index(d-1,k,n[1:d-1])
+  nn = size(mi_base,1)
+  mi = Matrix{S}(undef,nn*ki,d)
+  pos = 0
+  @inbounds for j = 1:nn
+    rprod = prod(mi_base[j,:].+1)
+    for i = 1:ki
+      if rprod*i <= kprime
+        pos += 1
+        @views mi[pos,1:d-1] .= mi_base[j,:]
+        mi[pos,d] = i-1
       end
     end
-    return mi[1:pos,:]
   end
-end
-  
-function determine_grid_size(p::Array{S,2}) where {S<:Integer} # p is a multi-index, internal function, not exported
-    
-  q = similar(p)
 
-  for i in eachindex(p)
-    if p[i] > 0
-      q[i] = 2
-    else
-      q[i] = 1
-    end
-  end
+  return mi[1:pos,:]
+
+end
+
+function determine_grid_size(p::AbstractMatrix{S}) where {S<:Integer} # p is a multi-index, internal function, not exported
 
   s = 0
-  for i in axes(q,1)
-    t = 1
-    for j in axes(q,2)
-      t *= q[i,j]
-    end
-    s += t
+  @inbounds for i in axes(p,1)
+    s += 1 << count(j -> p[i,j] > 0, axes(p,2))
   end
-    
-  return (s,size(q,2))
-   
+
+  return (s, size(p,2))
+
 end
 
 """
@@ -245,23 +236,21 @@ julia> dom = [-1.0 2.0; 2.0 -1.0]
 julia> domain = check_domain(dom)
 ```
 """
-function check_domain(d::S,domain::Union{Array{T,1},Array{T,2}}) where {S<:Integer,T<:Real}
+function check_domain(d::S,domain::Union{AbstractVector{T},AbstractMatrix{T}}) where {S<:Integer,T<:Real}
 
   if ndims(domain) == 1 # domain is a vector, so convert to a matrix
-    dom = reshape(domain,2,1)
+    dom = copy(reshape(domain,2,1))
   else
     dom = copy(domain)
   end
 
-  n = size(dom)
-  if d != n[2]
+  if d != size(dom,2)
     error("The size of 'domain' is inconsistent with the number of variables entering the function.")
   end
 
-  for i in 1:n[2]
+  for i in 1:size(dom,2)
     if dom[1,i] < dom[2,i]
-      dom[1,i] = maximum(domain[:,i])
-      dom[2,i] = minimum(domain[:,i])
+      dom[1,i], dom[2,i] = dom[2,i], dom[1,i]  
     end
   end
 
@@ -302,9 +291,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-
   # Determine the unique nodes introduced at each higher level
 
   if d == 1
-    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+    unique_base_nodes = Matrix{Vector{T}}(undef,(length(multi_index),1))
   else
-    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+    unique_base_nodes = Matrix{Vector{T}}(undef,size(multi_index))
   end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
@@ -316,7 +305,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,domain=[ones(1,d);-
 
   # Construct the hyperbolic cross from the unique nodes
     
-  nodes = Array{T,2}(undef,determine_grid_size(multi_index))
+  nodes = Matrix{T}(undef,determine_grid_size(multi_index))
   l = 1
   @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
@@ -368,9 +357,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1
   # Determine the unique nodes introduced at each higher level
 
   if d == 1
-    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+    unique_base_nodes = Matrix{Vector{T}}(undef,(length(multi_index),1))
   else
-    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+    unique_base_nodes = Matrix{Vector{T}}(undef,size(multi_index))
   end
   @inbounds for i in eachindex(multi_index)
     if multi_index[i] == 0
@@ -382,7 +371,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::S,domain=[ones(1
 
   # Construct the hyperbolic cross from the unique nodes
     
-  nodes = Array{T,2}(undef,determine_grid_size(multi_index))
+  nodes = Matrix{T}(undef,determine_grid_size(multi_index))
   l = 1
   @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
@@ -420,7 +409,7 @@ julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,[5,3])
 julia> grid, m_index = hyperbolic_cross_grid(chebyshev_extrema,2,3,[7,5],[3.0 1.5; 2.0 0.5])
 ```
 """
-function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
+function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},AbstractVector{S}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
   
   dom = check_domain(d,domain)
 
@@ -429,7 +418,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   # Create base nodes to be used in the sparse grid
       
   T = Float64
-  base_nodes = Array{Array{T,1},1}(undef,d)
+  base_nodes = Vector{Vector{T}}(undef,d)
 
   for i = 1:d
     base_nodes[i] = node_type(n[i])
@@ -438,9 +427,9 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   # Determine the unique nodes introduced at each higher level
   
   if d == 1
-    unique_base_nodes = Array{Array{T,1},2}(undef,(length(multi_index),1))
+    unique_base_nodes = Matrix{Vector{T}}(undef,(length(multi_index),1))
   else
-    unique_base_nodes = Array{Array{T,1},2}(undef,size(multi_index))
+    unique_base_nodes = Matrix{Vector{T}}(undef,size(multi_index))
   end
   @inbounds for i in axes(multi_index,1)
     for j = 1:d
@@ -454,7 +443,7 @@ function hyperbolic_cross_grid(node_type::Function,d::S,k::S,n::Union{NTuple{N,S
   
   # Construct the hyperbolic cross from the unique nodes
       
-  nodes = Array{T,2}(undef,determine_grid_size(multi_index))
+  nodes = Matrix{T}(undef,determine_grid_size(multi_index))
   l = 1
   @inbounds for j in axes(multi_index,1)
     new_nodes = unique_base_nodes[j,1]  # Here new_nodes is a 1d array
@@ -496,7 +485,7 @@ julia> hplan = hyperbolic_cross_plan(chebyshev_extrema,2,3,[3.0 1.5; 2.0 0.5])
 julia> hplan = hyperbolic_cross_plan(chebyshev_nodes,2,3,[7,5],[3.0 1.5; 2.0 0.5])
 ```
 """
-function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},Array{S,1}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
+function hyperbolic_cross_plan(node_type::Function,d::S,k::S,n::Union{NTuple{N,S},AbstractVector{S}},domain=[ones(1,d);-ones(1,d)]) where {S<:Integer,N}
 
   dom = check_domain(d,domain)
 
@@ -540,7 +529,7 @@ julia> y = [f(g[i,:]) for i in axes(g,1)]
 julia> w = hyperbolic_cross_weights(y,g,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::AbstractArray{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
+function hyperbolic_cross_weights(y::AbstractVector{T},grid::AbstractMatrix{T},multi_index::AbstractMatrix{S},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
   
   dom = check_domain(size(multi_index,2),domain)
 
@@ -557,8 +546,8 @@ function hyperbolic_cross_weights(y::AbstractArray{T,1},grid::AbstractArray{T,2}
   
   unique_multi_index = sort(unique(multi_index))
 
-  base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
-  unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
+  base_polynomials        = Vector{Matrix{T}}(undef,length(unique_multi_index))
+  unique_base_polynomials = Vector{Matrix{T}}(undef,length(unique_multi_index))
  
   @inbounds for k in axes(grid,1)
   
@@ -620,7 +609,7 @@ julia> y = [f(g[i,:]) for i in axes(g,1)]
 julia> w = hyperbolic_cross_weights_threaded(y,g,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::AbstractArray{T,2},multi_index::Array{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
+function hyperbolic_cross_weights_threaded(y::AbstractVector{T},grid::AbstractMatrix{T},multi_index::AbstractMatrix{S},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
   
   dom = check_domain(size(multi_index,2),domain)
 
@@ -639,8 +628,8 @@ function hyperbolic_cross_weights_threaded(y::AbstractArray{T,1},grid::AbstractA
 
   @inbounds @sync Threads.@threads for k in axes(grid,1)
   
-    base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
-    unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
+    base_polynomials        = Vector{Matrix{T}}(undef,length(unique_multi_index))
+    unique_base_polynomials = Vector{Matrix{T}}(undef,length(unique_multi_index))
   
     # Construct the base polynomials
   
@@ -697,7 +686,7 @@ julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
 julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
 ```
 """
-function hyperbolic_cross_inverse_interpolation_matrix(grid::AbstractArray{T,2},multi_index::AbstractArray{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix(grid::AbstractMatrix{T},multi_index::AbstractMatrix{S},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
   
   dom = check_domain(size(multi_index,2),domain)
 
@@ -714,8 +703,8 @@ function hyperbolic_cross_inverse_interpolation_matrix(grid::AbstractArray{T,2},
   
   unique_multi_index = sort(unique(multi_index))
 
-  base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
-  unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
+  base_polynomials        = Vector{Matrix{T}}(undef,length(unique_multi_index))
+  unique_base_polynomials = Vector{Matrix{T}}(undef,length(unique_multi_index))
  
   @inbounds for k in axes(grid,1)
   
@@ -775,7 +764,7 @@ julia> g,mi = hyperbolic_cross_grid(chebyshev_extrema,2,3,5,[1.0 1.0; 0.0 0.0])
 julia> iim = hyperbolic_cross_inverse_interpolation_matrix_threaded(g,mi)
 ```
 """
-function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::AbstractArray{T,2},multi_index::AbstractArray{S,2},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
+function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::AbstractMatrix{T},multi_index::AbstractMatrix{S},domain=[ones(1,size(grid,2));-ones(1,size(grid,2))]) where {T<:Real,S<:Integer}
   
   dom = check_domain(size(multi_index,2),domain)
 
@@ -794,8 +783,8 @@ function hyperbolic_cross_inverse_interpolation_matrix_threaded(grid::AbstractAr
  
   @inbounds @sync Threads.@threads for k in axes(grid,1)
 
-    base_polynomials        = Array{Array{T,2},1}(undef,length(unique_multi_index))
-    unique_base_polynomials = Array{Array{T,2},1}(undef,length(unique_multi_index))
+    base_polynomials        = Vector{Matrix{T}}(undef,length(unique_multi_index))
+    unique_base_polynomials = Vector{Matrix{T}}(undef,length(unique_multi_index))
   
     # Construct the base polynomials
   
@@ -854,7 +843,7 @@ julia> iim = hyperbolic_cross_inverse_interpolation_matrix(g,mi)
 julia> w = hyperbolic_cross_weights(y,iim)
 ```
 """
-function hyperbolic_cross_weights(y::AbstractArray{T,1},inverse_interpolation_matrix::AbstractArray{T,2}) where {T<:Real}
+function hyperbolic_cross_weights(y::AbstractVector{T},inverse_interpolation_matrix::AbstractMatrix{T}) where {T<:Real}
   
   weights = inverse_interpolation_matrix*y
   
@@ -880,7 +869,7 @@ julia> point = g[5,:]
 julia> hpoly = hyperbolic_cross_polynomial(point,mi,[1.0 1.0; 0.0 0.0])
 ```
 """
-function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::AbstractArray{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Real,S<:Integer}
+function hyperbolic_cross_polynomial(point::AbstractVector{R},multi_index::AbstractMatrix{S},domain=[ones(1,length(point));-ones(1,length(point))]) where {R<:Real,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -898,11 +887,11 @@ function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Abst
     n = 2*maximum(multi_index,dims=1).+1
     d = length(n) # d is the number of dimensions
     
-    base_polynomials        = Array{Array{R,2},1}(undef,d)
+    base_polynomials        = Vector{Matrix{R}}(undef,d)
     if d == 1
-      unique_base_polynomials = Array{Array{R,1},1}(undef,length(multi_index))
+      unique_base_polynomials = Vector{Vector{R}}(undef,length(multi_index))
     else
-      unique_base_polynomials = Array{Array{R,1},2}(undef,size(multi_index))
+      unique_base_polynomials = Matrix{Vector{R}}(undef,size(multi_index))
     end
      
     # Construct the base polynomials
@@ -926,7 +915,7 @@ function hyperbolic_cross_polynomial(point::AbstractArray{R,1},multi_index::Abst
     # Construct the hyperbolic cross polynomial
 
     n = determine_grid_size(multi_index)
-    polynomial = Array{R,1}(undef,n[1])
+    polynomial = Vector{R}(undef,n[1])
     l = 1
     @inbounds for j in axes(multi_index,1)
       new_polynomials = unique_base_polynomials[j,1]
@@ -963,7 +952,7 @@ julia> yhat = hyperbolic_cross_evaluate(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 0.6100559317314179
 ```
 """
-function hyperbolic_cross_evaluate(weights::AbstractArray{T,1},point::AbstractArray{R,1},multi_index::AbstractArray{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
+function hyperbolic_cross_evaluate(weights::AbstractVector{T},point::AbstractVector{R},multi_index::AbstractMatrix{S},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1005,7 +994,7 @@ julia> yhat = hyperbolic_cross_evaluate(w,hpoly)
 0.6100559317314179
 ```
 """
-function hyperbolic_cross_evaluate(weights::AbstractArray{T,1},polynomial::AbstractArray{R,1}) where {T<:Real,R<:Real}
+function hyperbolic_cross_evaluate(weights::AbstractVector{T},polynomial::AbstractVector{R}) where {T<:Real,R<:Real}
 
     estimate = weights'polynomial
 
@@ -1033,11 +1022,11 @@ julia> f([0.37,0.71])
 0.5638586549437409
 ```
 """
-function hyperbolic_cross_interp(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_interp(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_interp(x::Array{R,1}) where {R<:Real}
+  function hcross_interp(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_evaluate(weights,x,plan.multi_index,plan.domain)
   
@@ -1067,11 +1056,11 @@ julia> f([0.37,0.71])
 0.5638586549437409
 ```
 """
-function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_interp_threaded(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_interp(x::Array{R,1}) where {R<:Real}
+  function hcross_interp(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_evaluate(weights,x,plan.multi_index,plan.domain)
   
@@ -1081,19 +1070,19 @@ function hyperbolic_cross_interp_threaded(y::AbstractArray{T,1},plan::P) where {
   
 end
 
-function _hyperbolic_cross_derivative(weights::AbstractArray{T,1},point::AbstractArray{R,1},multi_index::AbstractArray{S,2},pos::S) where {T<:Real,R<:Real,S<:Integer} # Internal function, not exported
+function _hyperbolic_cross_derivative(weights::AbstractVector{T},point::AbstractVector{R},multi_index::AbstractMatrix{S},pos::S) where {T<:Real,R<:Real,S<:Integer} # Internal function, not exported
   
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
     
-  base_polynomials                   = Array{Array{R,2},1}(undef,d)
-  base_polynomial_derivatives        = Array{Array{R,2},1}(undef,d)
+  base_polynomials                   = Vector{Matrix{R}}(undef,d)
+  base_polynomial_derivatives        = Vector{Matrix{R}}(undef,d)
   if d == 1
-    unique_base_polynomials            = Array{Array{R,1},1}(undef,length(multi_index))
-    unique_base_polynomial_derivatives = Array{Array{R,1},1}(undef,length(multi_index))
+    unique_base_polynomials            = Vector{Vector{R}}(undef,length(multi_index))
+    unique_base_polynomial_derivatives = Vector{Vector{R}}(undef,length(multi_index))
   else
-    unique_base_polynomials            = Array{Array{R,1},2}(undef,size(multi_index))
-    unique_base_polynomial_derivatives = Array{Array{R,1},2}(undef,size(multi_index))
+    unique_base_polynomials            = Matrix{Vector{R}}(undef,size(multi_index))
+    unique_base_polynomial_derivatives = Matrix{Vector{R}}(undef,size(multi_index))
   end
 
   # Construct the base polynomials
@@ -1119,7 +1108,7 @@ function _hyperbolic_cross_derivative(weights::AbstractArray{T,1},point::Abstrac
         
   # Construct the first row of the interplation matrix
       
-  polynomials = Array{R,1}(undef,length(weights))
+  polynomials = Vector{R}(undef,length(weights))
 
   l = 1
   @inbounds for j in axes(multi_index,1)
@@ -1172,7 +1161,7 @@ julia> deriv2 = hyperbolic_cross_derivative(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0],
 0.5514971149820203
 ```
 """
-function hyperbolic_cross_derivative(weights::AbstractArray{T,1},point::AbstractArray{R,1},multi_index::AbstractArray{S,2},domain::Union{Array{T,1},Array{T,2}},pos::S) where {T<:Real,R<:Real,S<:Integer}
+function hyperbolic_cross_derivative(weights::AbstractVector{T},point::AbstractVector{R},multi_index::AbstractMatrix{S},domain::Union{Vector{T},Matrix{T}},pos::S) where {T<:Real,R<:Real,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1214,7 +1203,7 @@ julia> grad = hyperbolic_cross_gradient(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
 [0.515782  0.551497]
 ```
 """
-function hyperbolic_cross_gradient(weights::AbstractArray{T,1},point::AbstractArray{R,1},multi_index::AbstractArray{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
+function hyperbolic_cross_gradient(weights::AbstractVector{T},point::AbstractVector{R},multi_index::AbstractMatrix{S},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1223,7 +1212,7 @@ function hyperbolic_cross_gradient(weights::AbstractArray{T,1},point::AbstractAr
   dom = check_domain(size(multi_index,2),domain)
 
   d = length(point)
-  gradient = Array{R,2}(undef,1,d)
+  gradient = Matrix{R}(undef,1,d)
   
   for i = 1:d
     gradient[i] = hyperbolic_cross_derivative(weights,point,multi_index,dom,i)
@@ -1253,11 +1242,11 @@ julia> grad([0.37,0.71])
 [0.515782  0.551497]
 ```
 """
-function hyperbolic_cross_gradient(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_gradient(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_grad(x::Array{R,1}) where {R<:Real}
+  function hcross_grad(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_gradient(weights,x,plan.multi_index,plan.domain)
   
@@ -1287,11 +1276,11 @@ julia> grad([0.37,0.71])
 [0.515782  0.551497]
 ```
 """
-function hyperbolic_cross_gradient_threaded(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_gradient_threaded(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_grad(x::Array{R,1}) where {R<:Real}
+  function hcross_grad(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_gradient(weights,x,plan.multi_index,plan.domain)
   
@@ -1323,7 +1312,7 @@ julia> hess = hyperbolic_cross_hessian(w,[0.37,0.71],mi,[1.0 1.0; 0.0 0.0])
   0.466767  -0.20577]
 ```
 """
-function hyperbolic_cross_hessian(weights::AbstractArray{T,1},point::AbstractArray{R,1},multi_index::AbstractArray{S,2},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
+function hyperbolic_cross_hessian(weights::AbstractVector{T},point::AbstractVector{R},multi_index::AbstractMatrix{S},domain=[ones(1,length(point));-ones(1,length(point))]) where {T<:Real,R<:Real,S<:Integer}
   
   if length(point) != size(domain,2)
     error("Inconsistency between the length of 'point' and the size of 'domain'.")
@@ -1344,19 +1333,19 @@ function hyperbolic_cross_hessian(weights::AbstractArray{T,1},point::AbstractArr
   n = 2*maximum(multi_index,dims=1).+1
   d = length(n) # d is the number of dimensions
   
-  hess = Array{T,2}(undef,d,d)
+  hess = Matrix{T}(undef,d,d)
 
-  base_polynomials                   = Array{Array{R,2},1}(undef,d)
-  base_polynomial_derivatives        = Array{Array{R,2},1}(undef,d)
-  base_polynomial_sec_derivatives    = Array{Array{R,2},1}(undef,d)
+  base_polynomials                   = Vector{Matrix{R}}(undef,d)
+  base_polynomial_derivatives        = Vector{Matrix{R}}(undef,d)
+  base_polynomial_sec_derivatives    = Vector{Matrix{R}}(undef,d)
   if d == 1
-    unique_base_polynomials                = Array{Array{R,1},1}(undef,length(multi_index))
-    unique_base_polynomial_derivatives     = Array{Array{R,1},1}(undef,length(multi_index))
-    unique_base_polynomial_sec_derivatives = Array{Array{R,1},1}(undef,length(multi_index))
+    unique_base_polynomials                = Vector{Vector{R}}(undef,length(multi_index))
+    unique_base_polynomial_derivatives     = Vector{Vector{R}}(undef,length(multi_index))
+    unique_base_polynomial_sec_derivatives = Vector{Vector{R}}(undef,length(multi_index))
   else
-    unique_base_polynomials                = Array{Array{R,1},2}(undef,size(multi_index))
-    unique_base_polynomial_derivatives     = Array{Array{R,1},2}(undef,size(multi_index))
-    unique_base_polynomial_sec_derivatives = Array{Array{R,1},2}(undef,size(multi_index))
+    unique_base_polynomials                = Matrix{Vector{R}}(undef,size(multi_index))
+    unique_base_polynomial_derivatives     = Matrix{Vector{R}}(undef,size(multi_index))
+    unique_base_polynomial_sec_derivatives = Matrix{Vector{R}}(undef,size(multi_index))
   end
 
   # Construct the base polynomials
@@ -1385,7 +1374,7 @@ function hyperbolic_cross_hessian(weights::AbstractArray{T,1},point::AbstractArr
         
   # Construct the first row of the interplation matrix
       
-  polynomials = Array{R,1}(undef,length(weights))
+  polynomials = Vector{R}(undef,length(weights))
 
   @inbounds for c in CartesianIndices(hess)
     l = 1
@@ -1446,11 +1435,11 @@ julia> hess([0.37,0.71])
   0.466767  -0.20577]
 ```
 """
-function hyperbolic_cross_hessian(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_hessian(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
 
   weights = hyperbolic_cross_weights(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_hess(x::Array{R,1}) where {R<:Real}
+  function hcross_hess(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_hessian(weights,x,plan.multi_index,plan.domain)
   
@@ -1481,11 +1470,11 @@ julia> hess([0.37,0.71])
   0.466767  -0.20577]
 ```
 """
-function hyperbolic_cross_hessian_threaded(y::AbstractArray{T,1},plan::P) where {T<:Real,P<:HCApproximationPlan}
+function hyperbolic_cross_hessian_threaded(y::AbstractVector{T},plan::P) where {T<:Real,P<:HCApproximationPlan}
   
   weights = hyperbolic_cross_weights_threaded(y,plan.grid,plan.multi_index,plan.domain)
   
-  function hcross_hess(x::Array{R,1}) where {R<:Real}
+  function hcross_hess(x::AbstractVector{R}) where {R<:Real}
   
     return hyperbolic_cross_hessian(weights,x,plan.multi_index,plan.domain)
   
@@ -1586,11 +1575,11 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan)
     
   T = eltype(grid)
 
-  base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
+  base_polynomial_integrals        = Vector{Vector{T}}(undef,d)
   if d == 1
-    unique_base_polynomial_integrals = Array{Array{T,1},1}(undef,length(multi_index))
+    unique_base_polynomial_integrals = Vector{Vector{T}}(undef,length(multi_index))
   else
-    unique_base_polynomial_integrals = Array{Array{T,1},2}(undef,size(multi_index))
+    unique_base_polynomial_integrals = Matrix{Vector{T}}(undef,size(multi_index))
   end
 
   # Construct the base polynomials
@@ -1613,7 +1602,7 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan)
         
   # Construct the first row of the interplation matrix
       
-  polynomials = Array{T,1}(undef,length(weights))
+  polynomials = Vector{T}(undef,length(weights))
 
   l = 1
   @inbounds for j in axes(multi_index,1)
@@ -1661,7 +1650,7 @@ julia> integral(0.5)
 1.2500000000001648
 ```
 """
-function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S) where {S<:Integer}
+function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S) where {S <: Integer}
   
   # Uses Clenshaw-Curtis to integrate over all dimensions except for pos
 
@@ -1685,14 +1674,14 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S)
     
     T = eltype(grid)
 
-    base_polynomials                 = Array{Array{T,1},1}(undef,d)
-    base_polynomial_integrals        = Array{Array{T,1},1}(undef,d)
+    base_polynomials                 = Vector{Vector{T}}(undef,d)
+    base_polynomial_integrals        = Vector{Vector{T}}(undef,d)
     if d == 1
-      unique_base_polynomials          = Array{Array{T,1},1}(undef,length(multi_index))
-      unique_base_polynomial_integrals = Array{Array{T,1},1}(undef,length(multi_index))    
+      unique_base_polynomials          = Vector{Vector{T}}(undef,length(multi_index))
+      unique_base_polynomial_integrals = Vector{Vector{T}}(undef,length(multi_index))    
     else
-      unique_base_polynomials          = Array{Array{T,1},2}(undef,size(multi_index))
-      unique_base_polynomial_integrals = Array{Array{T,1},2}(undef,size(multi_index))
+      unique_base_polynomials          = Matrix{Vector{T}}(undef,size(multi_index))
+      unique_base_polynomial_integrals = Matrix{Vector{T}}(undef,size(multi_index))
     end
 
     # Construct the base polynomials
@@ -1718,7 +1707,7 @@ function hyperbolic_cross_clenshaw_curtis(f::Function,plan::HCApproxPlan,pos::S)
         
     # Construct the first row of the interplation matrix
       
-    polynomials = Array{T,1}(undef,length(weights))
+    polynomials = Vector{T}(undef,length(weights))
 
     l = 1
     @inbounds for j in axes(multi_index,1)
